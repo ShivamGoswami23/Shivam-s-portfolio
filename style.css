@@ -462,7 +462,6 @@ nav img {
         -10px -10px 22px var(--clay-shadow-light),
         10px 10px 28px var(--clay-shadow-dark);
     border: 4px solid #ffffff;
-    filter: grayscale(100%);
 }
 
 .bounding {
