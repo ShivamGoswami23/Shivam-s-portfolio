@@ -111,12 +111,13 @@ portfolio-design-main/
 
 ## 🌐 Deployment
 
-This app has a real backend (file storage, sessions, email, PDF generation), so it needs an **always-on Node.js host** — not a static host like GitHub Pages/Vercel/Netlify, which won't keep saved data or uploads.
+Deployed on **[Vercel](https://vercel.com)** as a serverless Node function (see `vercel.json`).
 
-Deployed on **[Render](https://render.com)**:
-- Build Command: `npm install`
-- Start Command: `npm start`
-- Environment variables: same as the `.env` file above, added via the Render dashboard.
+This app has a real backend (file storage, sessions, email, PDF generation) that normally expects an always-on host with persistent disk. Vercel's serverless functions don't have that — the bundle itself is read-only, and only `/tmp` is writable, wiped whenever a fresh instance spins up. To make it work anyway, writes are redirected to `/tmp` (seeded from the committed files on cold start). Practically, that means:
+- Admin-uploaded content (projects, certificates, photos, contact messages) is not guaranteed to persist — treat anything added through the admin panel as temporary unless it's also committed into the repo.
+- Admin login sessions can intermittently drop, since sessions aren't shared across serverless instances.
+
+Environment variables: same as the `.env` file above, added via the Vercel dashboard (Project → Settings → Environment Variables).
 
 ---
 
