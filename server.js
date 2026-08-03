@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
+const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 
 const app = express();
@@ -41,34 +42,41 @@ const uploadMemory = multer({
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
+let mailTransporter = null;
+if (process.env.BREVO_SMTP_LOGIN && process.env.BREVO_SMTP_KEY) {
+    mailTransporter = nodemailer.createTransport({
+        host: 'smtp-relay.brevo.com',
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        auth: {
+            user: process.env.BREVO_SMTP_LOGIN,
+            pass: process.env.BREVO_SMTP_KEY,
+        },
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 20000,
+    });
+}
+
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function sendContactNotification(msg, attempt = 1) {
-    if (!process.env.RESEND_API_KEY) {
-        console.log('Email not configured (missing RESEND_API_KEY) - skipping notification email.');
+    if (!mailTransporter) {
+        console.log('Email not configured (missing BREVO_SMTP_LOGIN/BREVO_SMTP_KEY) - skipping notification email.');
         return;
     }
     try {
-        const res = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                from: 'Portfolio Contact Form <onboarding@resend.dev>',
-                to: process.env.NOTIFY_EMAIL,
-                reply_to: msg.email,
-                subject: `New portfolio message from ${msg.name}`,
-                text: `From: ${msg.name} <${msg.email}>\n\n${msg.message}`,
-                html: `<p><strong>From:</strong> ${escapeHtml(msg.name)} &lt;${escapeHtml(msg.email)}&gt;</p><p>${escapeHtml(msg.message).replace(/\n/g, '<br>')}</p>`,
-            }),
+        await mailTransporter.sendMail({
+            from: `Portfolio Contact Form <${process.env.FROM_EMAIL || process.env.NOTIFY_EMAIL}>`,
+            to: process.env.NOTIFY_EMAIL,
+            replyTo: msg.email,
+            subject: `New portfolio message from ${msg.name}`,
+            text: `From: ${msg.name} <${msg.email}>\n\n${msg.message}`,
+            html: `<p><strong>From:</strong> ${escapeHtml(msg.name)} &lt;${escapeHtml(msg.email)}&gt;</p><p>${escapeHtml(msg.message).replace(/\n/g, '<br>')}</p>`,
         });
-        if (!res.ok) {
-            throw new Error(`Resend API responded ${res.status}: ${await res.text()}`);
-        }
         console.log('Notification email sent for message ' + msg.id + ' (attempt ' + attempt + ')');
     } catch (err) {
         console.error('Failed to send notification email (attempt ' + attempt + '):', err.message);
