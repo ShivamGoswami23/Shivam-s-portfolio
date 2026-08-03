@@ -1406,6 +1406,16 @@ nav img {
     font-family: GilroyTI;
 }
 
+/* Education/certificate issuer subtitle line - shared by both sections */
+.cert-subtitle {
+    font-family: Gilroy, sans-serif;
+    font-size: 1.5vw;
+    text-transform: none;
+    color: var(--graydark);
+    display: block;
+    margin-top: 1vw;
+}
+
 #certifications .cert .cert-img {
     position: relative;
     height: 100%;
@@ -2212,6 +2222,11 @@ nav img {
         width: 100%;
     }
 
+    .cert-subtitle {
+        font-size: 2.8vw;
+        margin-top: 2vw;
+    }
+
     #certifications .cert .cert-img {
         width: 100%;
     }
@@ -2863,6 +2878,11 @@ nav img {
     #certifications .cert h3 {
         font-size: 12vw;
         width: 100%;
+    }
+
+    .cert-subtitle {
+        font-size: 3.5vw;
+        margin-top: 2.5vw;
     }
 
     #certifications .cert .cert-img {

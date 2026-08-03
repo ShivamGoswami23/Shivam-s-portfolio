@@ -373,7 +373,7 @@ function renderCertificatesHtml(certificates) {
     }
     return certificates.map((c, i) => `
                 <div class="cert">
-                    <h3 class="scale"><span>(${String(i + 1).padStart(2, '0')})</span><br><a href="${escapeHtml(c.image)}" class="cert-link" target="_blank">${escapeHtml(c.title)}</a><br><span style="font-family: Gilroy, sans-serif; font-size: 1.5vw; text-transform: none; color: var(--graydark); display: block; margin-top: 1vw;">${escapeHtml(c.issuer)}</span></h3>
+                    <h3 class="scale"><span>(${String(i + 1).padStart(2, '0')})</span><br><a href="${escapeHtml(c.image)}" class="cert-link" target="_blank">${escapeHtml(c.title)}</a><br><span class="cert-subtitle">${escapeHtml(c.issuer)}</span></h3>
                     <div class="cert-img scale"><a href="${escapeHtml(c.image)}" class="cert-link" target="_blank"><img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.title)}"></a></div>
                 </div>`).join('\n');
 }
