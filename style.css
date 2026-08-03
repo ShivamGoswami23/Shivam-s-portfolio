@@ -24,12 +24,15 @@
 }
 
 :root {
-    --white: #dadada;
-    --gray: #777;
-    --graydark: #555;
-    --black: #1a1818;
-    --accent: #ff4757;
-    --accent-dark: #d63447;
+    --white: #121212;
+    --gray: #8a8a8a;
+    --graydark: #b3b3b3;
+    --black: #f2f2f0;
+    --surface: #1c1c1f;
+    --surface-2: #232327;
+    --border-soft: rgba(255, 255, 255, 0.08);
+    --accent: #ff7a1a;
+    --accent-dark: #e5690a;
 }
 
 *::selection {
@@ -42,6 +45,7 @@ body {
     width: 100%;
     height: 100%;
     background-color: var(--white);
+    color: var(--black);
 }
 
 .underlineW::after {
@@ -66,7 +70,7 @@ body {
     position: absolute;
     bottom: 0;
     left: 0;
-    background-color: var(--black);
+    background-color: var(--accent);
     transition: ease-in 0.15s;
 }
 
@@ -136,18 +140,21 @@ nav a {
 
 nav .menu-cv {
     padding: 0.5vw 2vw;
-    background-color: var(--white);
-    border: 1.5px solid var(--gray);
+    background-color: var(--accent);
+    color: #fff !important;
+    border: 1.5px solid var(--accent);
+    border-radius: 50px;
     transition: all linear 0.2s;
 }
 
 nav .menu-cv:hover {
-    color: var(--white);
-    background-color: var(--black);
+    color: #fff !important;
+    background-color: var(--accent-dark);
+    border-color: var(--accent-dark);
 }
 
 nav a:hover {
-    color: var(--black);
+    color: var(--accent);
 }
 
 nav img {
@@ -165,7 +172,7 @@ nav img {
 .loader1 {
     height: 100vh;
     width: 100%;
-    background-color: var(--black);
+    background-color: var(--white);
     z-index: 11;
     position: absolute;
     top: 0;
@@ -247,6 +254,13 @@ nav img {
     letter-spacing: -5px;
 }
 
+.hero-greeting {
+    font-family: Gilroy, sans-serif;
+    font-size: 1.3vw;
+    color: var(--gray);
+    margin-bottom: 0.5vw;
+}
+
 #landing-page .elem2 h1 {
     font-size: 5vw;
 }
@@ -324,6 +338,45 @@ nav img {
     background: var(--accent);
     border-color: var(--accent);
     color: #fff;
+}
+
+.hero-stats {
+    display: flex;
+    align-items: center;
+    gap: 2vw;
+    margin-top: 2vw;
+    padding: 1.4vw 2.2vw;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    width: fit-content;
+}
+
+.hero-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2vw;
+    padding-right: 2vw;
+    border-right: 1px solid var(--border-soft);
+}
+
+.hero-stat:last-child {
+    padding-right: 0;
+    border-right: none;
+}
+
+.hero-stat-num {
+    font-family: Fjalla One, sans-serif;
+    font-size: 1.8vw;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+}
+
+.hero-stat-label {
+    font-family: Gilroy, sans-serif;
+    font-size: 0.85vw;
+    color: var(--graydark);
+    white-space: nowrap;
 }
 
 .mobile {
@@ -443,7 +496,7 @@ nav img {
 }
 
 .portrait-badge i {
-    color: #ff4757;
+    color: var(--accent);
     font-size: 1.3vw;
 }
 
@@ -490,24 +543,24 @@ nav img {
     display: flex;
     align-items: flex-start;
     gap: 1.2vw;
-    background: #ffffff;
-    border: 1.5px solid rgba(0, 0, 0, 0.1);
+    background: var(--surface);
+    border: 1.5px solid var(--border-soft);
     padding: 1.5vw 2vw;
     border-radius: 16px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
     transition: all 0.3s ease;
 }
 
 .highlight-item:hover {
-    border-color: var(--black);
+    border-color: var(--accent);
     transform: translateX(6px);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.35);
 }
 
 .highlight-item i {
     font-size: 2vw;
-    color: var(--white);
-    background: var(--black);
+    color: #fff;
+    background: var(--accent);
     padding: 0.8vw;
     border-radius: 12px;
     line-height: 1;
@@ -531,8 +584,10 @@ nav img {
 
 .about-quote-box {
     position: relative;
-    background: var(--black);
-    color: var(--white);
+    background: var(--surface);
+    border: 1.5px solid var(--border-soft);
+    border-left: 3px solid var(--accent);
+    color: var(--black);
     padding: 2vw 2.5vw;
     border-radius: 16px;
     margin-bottom: 3vw;
@@ -540,7 +595,7 @@ nav img {
 
 .about-quote-box i {
     font-size: 2.2vw;
-    color: var(--gray);
+    color: var(--accent);
     margin-bottom: 0.8vw;
     display: block;
 }
@@ -550,7 +605,7 @@ nav img {
     font-size: 1.25vw;
     font-style: italic;
     line-height: 1.6;
-    color: var(--white);
+    color: var(--black);
     margin: 0;
 }
 
@@ -565,8 +620,8 @@ nav img {
     font-weight: 600;
     font-size: 1.3vw;
     letter-spacing: 1px;
-    color: var(--white);
-    background-color: var(--black);
+    color: var(--black);
+    background-color: transparent;
     padding: 1vw 2.8vw;
     border-radius: 50px;
     text-decoration: none;
@@ -579,8 +634,8 @@ nav img {
 }
 
 .about-actions .cv-btn:hover {
-    background-color: transparent;
-    color: var(--black);
+    background-color: var(--black);
+    color: var(--white);
 }
 
 .about-actions .talk-btn {
@@ -588,8 +643,8 @@ nav img {
     font-weight: 600;
     font-size: 1.3vw;
     letter-spacing: 1px;
-    color: var(--black);
-    background-color: transparent;
+    color: #fff;
+    background-color: var(--accent);
     padding: 1vw 2.8vw;
     border-radius: 50px;
     text-decoration: none;
@@ -597,13 +652,13 @@ nav img {
     align-items: center;
     gap: 0.8vw;
     transition: all 0.3s ease;
-    border: 2px solid var(--black);
+    border: 2px solid var(--accent);
     white-space: nowrap;
 }
 
 .about-actions .talk-btn:hover {
-    background-color: var(--accent);
-    border-color: var(--accent);
+    background-color: var(--accent-dark);
+    border-color: var(--accent-dark);
     color: #fff;
 }
 
@@ -614,18 +669,18 @@ nav img {
     padding-top: 6vw;
     width: 100%;
     position: relative;
-    background-color: var(--black);
+    background-color: var(--white);
 }
 
 #projects>h1 {
     position: relative;
     width: fit-content;
     font-size: 5vw;
-    color: var(--white);
+    color: var(--black);
     letter-spacing: -5px;
     font-weight: 100;
     text-align: left;
-    border-bottom: 3px solid var(--white);
+    border-bottom: 3px solid var(--accent);
     line-height: 1;
     font-family: Fjalla one;
 }
@@ -647,7 +702,7 @@ nav img {
     left: 50%;
     transform: translate(-50%, -50%);
     height: 0;
-    background-color: var(--white);
+    background-color: var(--black);
     width: 100%;
     transition: linear 0.25s;
 }
@@ -664,13 +719,13 @@ nav img {
     transition: linear 0.2s;
     height: 28vh;
     width: 100%;
-    border-bottom: 2px solid var(--white);
+    border-bottom: 2px solid var(--border-soft);
     padding: 0 1.5vw;
     transition: linear 0.4s;
 }
 
 .first {
-    border-top: 2px solid var(--white);
+    border-top: 2px solid var(--border-soft);
 }
 
 .project:hover {
@@ -699,7 +754,7 @@ nav img {
     font-size: 3vw;
     font-family: Fjalla one;
     font-weight: 100;
-    color: var(--white);
+    color: var(--black);
     letter-spacing: -0.1vw;
     position: relative;
     z-index: 11;
@@ -712,7 +767,7 @@ nav img {
 
 .project i {
     font-size: 3.2vw;
-    color: var(--white);
+    color: var(--black);
     position: relative;
     margin-right: -1.25vw;
     z-index: 11;
@@ -828,21 +883,21 @@ nav img {
     color: var(--white);
 }
 
-/* WHITE CARD VARIANT */
+/* SURFACE CARD VARIANT */
 .bw-card.card-white {
-    background-color: #ffffff;
+    background-color: var(--surface);
     color: var(--black);
-    border: 1.5px solid var(--black);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1.5px solid var(--border-soft);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
 .bw-card.card-white .card-num {
-    color: var(--graydark);
+    color: var(--gray);
 }
 
 .bw-card.card-white .card-badge {
-    color: var(--white);
-    background: var(--black);
+    color: #fff;
+    background: var(--accent);
 }
 
 .bw-card.card-white h3 {
@@ -854,23 +909,23 @@ nav img {
 }
 
 .bw-card.card-white .bw-tag {
-    color: var(--white);
-    background: var(--black);
-    border: 1px solid var(--black);
+    color: var(--black);
+    background: var(--surface-2);
+    border: 1px solid var(--border-soft);
 }
 
 .bw-card.card-white .bw-tag i {
-    color: var(--white);
+    color: var(--accent);
 }
 
 .bw-card.card-white .bw-tag:hover {
-    background: #ffffff;
-    color: var(--black);
-    border-color: var(--black);
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
 }
 
 .bw-card.card-white .bw-tag:hover i {
-    color: var(--black);
+    color: #fff;
 }
 
 .bw-card.featured-card {
@@ -879,7 +934,8 @@ nav img {
 
 .bw-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+    border-color: var(--accent);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
 }
 
 .bw-card-top {
@@ -1150,6 +1206,7 @@ nav img {
     width: 50%;
     line-height: 1.25;
     position: relative;
+    color: var(--black);
 }
 
 #education .cert h3::after {
@@ -1245,6 +1302,7 @@ nav img {
     width: 50%;
     line-height: 1.25;
     position: relative;
+    color: var(--black);
 }
 
 #certifications .cert h3::after {
@@ -1296,7 +1354,7 @@ nav img {
     padding-top: 5vw;
     width: 100vw;
     position: relative;
-    background-color: var(--black);
+    background-color: var(--white);
 }
 
 #contact h1 {
@@ -1307,7 +1365,7 @@ nav img {
     letter-spacing: -5px;
     font-weight: 100;
     text-align: left;
-    border-bottom: 3px solid var(--gray);
+    border-bottom: 3px solid var(--accent);
     line-height: 1;
     font-family: Fjalla one;
     margin-bottom: 3.5vw;
@@ -1317,7 +1375,7 @@ nav img {
     width: 100%;
     display: flex;
     position: relative;
-    background-color: var(--black);
+    background-color: var(--white);
 }
 
 .cont-wrapper .left {
@@ -1330,7 +1388,7 @@ nav img {
     font-family: Fjalla one, sans-serif;
     font-size: 2.6vw;
     font-weight: 100;
-    color: var(--white);
+    color: var(--black);
     line-height: 1.4;
     margin-bottom: 1vw;
 }
@@ -1362,13 +1420,13 @@ nav img {
     justify-content: center;
     flex-direction: column;
     gap: 1vw;
-    border-top: 1.5px solid var(--graydark);
+    border-top: 1.5px solid var(--border-soft);
     padding: 4vw 0;
 }
 
 .cont-wrapper .left .submit-res h2 {
     font-family: Gilroy, sans-serif;
-    color: var(--white);
+    color: var(--black);
     font-size: 2.25vw;
     font-weight: 100;
 }
@@ -1391,13 +1449,19 @@ nav img {
     font-family: Gilroy, sans-serif;
     padding: 1vw 0;
     border: none;
-    border-bottom: 1px solid var(--white);
-    background-color: var(--black);
-    color: var(--white);
+    border-bottom: 1px solid var(--border-soft);
+    background-color: transparent;
+    color: var(--black);
     margin: 1vw 0;
     font-size: 1.4vw;
     outline: none;
     resize: none;
+    transition: border-color 0.2s ease;
+}
+
+.cont-wrapper .left form .input-wrapper input:focus,
+.cont-wrapper .left form textarea:focus {
+    border-bottom-color: var(--accent);
 }
 
 .cont-wrapper .left form input {
@@ -1407,11 +1471,12 @@ nav img {
 .cont-wrapper .left form button {
     padding: 1vw 2.5vw;
     border-radius: 100px;
-    border: 1.8px solid var(--white);
-    color: var(--gray);
-    background-color: var(--black);
+    border: none;
+    color: #fff;
+    background-color: var(--accent);
     width: fit-content;
     font-family: Gilroy, sans-serif;
+    font-weight: 600;
     font-size: 1.6vw;
     margin-top: 2vw;
     transition: all ease-in 0.15s;
@@ -1420,7 +1485,7 @@ nav img {
 }
 
 .cont-wrapper .left form button:hover {
-    color: var(--white);
+    background-color: var(--accent-dark);
 }
 
 .cont-wrapper .right {
@@ -1446,18 +1511,20 @@ nav img {
 }
 
 .cont-wrapper .right .cont-cv {
-    background-color: var(--black);
+    background-color: transparent;
     text-decoration: none;
     position: relative;
-    color: var(--gray);
-    border: 1.8px solid var(--white);
+    color: var(--black);
+    border: 1.8px solid var(--border-soft);
     padding: 0.5vw 4.5vw;
     border-radius: 100px;
     transition: all ease-in 0.15s;
 }
 
 .cont-wrapper .right .cont-cv:hover {
-    color: var(--white);
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
 }
 
 .cont-wrapper .right .cont-links a,
@@ -1466,7 +1533,7 @@ nav img {
     text-decoration: none;
     font-family: Gilroy, sans-serif;
     font-size: 1.6vw;
-    color: var(--white);
+    color: var(--black);
     line-height: 2.25;
 }
 
@@ -1495,7 +1562,7 @@ nav img {
 
 #contact .footer .back-top {
     position: relative;
-    color: var(--white);
+    color: var(--black);
     cursor: pointer;
 }
 
@@ -1559,7 +1626,7 @@ nav img {
         height: 0;
         width: 100%;
         position: absolute;
-        background-color: var(--black);
+        background-color: var(--white);
         top: 0;
         z-index: 10;
         overflow: hidden;
@@ -1567,7 +1634,7 @@ nav img {
     }
 
     #menu .bg1 {
-        background-color: var(--white);
+        background-color: var(--black);
         position: absolute;
         top: 0;
         width: 100%;
@@ -1577,7 +1644,7 @@ nav img {
     }
 
     #menu .bg2 {
-        background-color: var(--black);
+        background-color: var(--white);
         position: absolute;
         top: 0;
         width: 100%;
@@ -1593,7 +1660,7 @@ nav img {
 
     #menu .bg2 a {
         text-decoration: none;
-        color: var(--white);
+        color: var(--black);
         font-family: Fjalla one, sans-serif;
         font-weight: 100;
         text-transform: uppercase;
@@ -1626,9 +1693,9 @@ nav img {
     #menu .menu-social a {
         font-family: Gilroy;
         font-size: 3vw;
-        color: var(--white);
+        color: var(--black);
         text-transform: none;
-        border-bottom: 1px solid var(--white);
+        border-bottom: 1px solid var(--black);
         line-height: 1;
     }
 
@@ -1696,6 +1763,28 @@ nav img {
         width: 4.6vw;
         height: 4.6vw;
         font-size: 2.2vw;
+    }
+
+    .hero-greeting {
+        font-size: 2.6vw;
+    }
+
+    .hero-stats {
+        gap: 4vw;
+        padding: 3vw 4vw;
+        margin-top: 3vw;
+    }
+
+    .hero-stat {
+        padding-right: 4vw;
+    }
+
+    .hero-stat-num {
+        font-size: 3.4vw;
+    }
+
+    .hero-stat-label {
+        font-size: 1.8vw;
     }
 
     .profile-img {
@@ -2074,11 +2163,9 @@ nav img {
 
     .cont-wrapper .left form button {
         padding: 3.25vw 7vw;
-        border: 1px solid var(--white);
         font-size: 3.7vw;
         margin-top: 3vw;
         width: 100%;
-        color: var(--white);
         line-height: 1;
     }
 
@@ -2107,13 +2194,15 @@ nav img {
         border-radius: 0;
         line-height: 1.5;
         transition: all ease-in 0.15s;
-        color: var(--white);
-        border-bottom: 1px solid var(--white);
+        color: var(--black);
+        border-bottom: 1px solid var(--black);
         text-transform: uppercase;
+        background-color: transparent;
     }
 
     .cont-wrapper .right .cont-cv:hover {
-        color: var(--white);
+        color: var(--accent);
+        border-bottom-color: var(--accent);
     }
 
     .cont-wrapper .right .cont-links a,
@@ -2122,7 +2211,7 @@ nav img {
         text-decoration: none;
         font-family: Gilroy, sans-serif;
         font-size: 3.7vw;
-        color: var(--white);
+        color: var(--black);
         line-height: 2;
     }
 
@@ -2213,7 +2302,7 @@ nav img {
         height: 0;
         width: 100%;
         position: absolute;
-        background-color: var(--black);
+        background-color: var(--white);
         top: 0;
         z-index: 10;
         overflow: hidden;
@@ -2221,7 +2310,7 @@ nav img {
     }
 
     #menu .bg1 {
-        background-color: var(--white);
+        background-color: var(--black);
         position: absolute;
         top: 0;
         width: 100%;
@@ -2231,7 +2320,7 @@ nav img {
     }
 
     #menu .bg2 {
-        background-color: var(--black);
+        background-color: var(--white);
         position: absolute;
         top: 0;
         width: 100%;
@@ -2247,7 +2336,7 @@ nav img {
 
     #menu .bg2 a {
         text-decoration: none;
-        color: var(--white);
+        color: var(--black);
         font-family: Fjalla one, sans-serif;
         font-weight: 100;
         text-transform: uppercase;
@@ -2280,9 +2369,9 @@ nav img {
     #menu .menu-social a {
         font-family: Gilroy;
         font-size: 3.7vw;
-        color: var(--white);
+        color: var(--black);
         text-transform: none;
-        border-bottom: 1px solid var(--white);
+        border-bottom: 1px solid var(--black);
         line-height: 1;
     }
 
@@ -2348,6 +2437,29 @@ nav img {
         width: 8vw;
         height: 8vw;
         font-size: 3.6vw;
+    }
+
+    .hero-greeting {
+        font-size: 3.5vw;
+    }
+
+    .hero-stats {
+        flex-wrap: wrap;
+        gap: 5vw;
+        padding: 4vw 5vw;
+        margin-top: 4vw;
+    }
+
+    .hero-stat {
+        padding-right: 5vw;
+    }
+
+    .hero-stat-num {
+        font-size: 5vw;
+    }
+
+    .hero-stat-label {
+        font-size: 2.6vw;
     }
 
     .profile-img {
@@ -2686,11 +2798,9 @@ nav img {
 
     .cont-wrapper .left form button {
         padding: 3.5vw 7vw;
-        border: 1px solid var(--white);
         font-size: 5vw;
         margin-top: 4vw;
         width: 100%;
-        color: var(--white);
         line-height: 1;
     }
 
@@ -2719,13 +2829,15 @@ nav img {
         border-radius: 0;
         line-height: 1.5;
         transition: all ease-in 0.15s;
-        color: var(--white);
-        border-bottom: 1px solid var(--white);
+        color: var(--black);
+        border-bottom: 1px solid var(--black);
         text-transform: uppercase;
+        background-color: transparent;
     }
 
     .cont-wrapper .right .cont-cv:hover {
-        color: var(--white);
+        color: var(--accent);
+        border-bottom-color: var(--accent);
     }
 
     .cont-wrapper .right .cont-links a,
@@ -2734,7 +2846,7 @@ nav img {
         text-decoration: none;
         font-family: Gilroy, sans-serif;
         font-size: 5vw;
-        color: var(--white);
+        color: var(--black);
         line-height: 2.25;
     }
 
@@ -2811,7 +2923,7 @@ nav img {
     position: absolute;
     top: 3vw;
     right: 4vw;
-    color: var(--white);
+    color: var(--black);
     font-size: 4vw;
     font-weight: bold;
     cursor: pointer;
