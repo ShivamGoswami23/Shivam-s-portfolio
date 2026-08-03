@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
-const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 
 const app = express();
@@ -42,40 +41,34 @@ const uploadMemory = multer({
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
-let mailTransporter = null;
-if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
-    mailTransporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: {
-            user: process.env.GMAIL_USER,
-            pass: process.env.GMAIL_APP_PASSWORD,
-        },
-        connectionTimeout: 20000,
-        greetingTimeout: 20000,
-        socketTimeout: 20000,
-    });
-}
-
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function sendContactNotification(msg, attempt = 1) {
-    if (!mailTransporter) {
-        console.log('Email not configured (missing GMAIL_APP_PASSWORD) - skipping notification email.');
+    if (!process.env.RESEND_API_KEY) {
+        console.log('Email not configured (missing RESEND_API_KEY) - skipping notification email.');
         return;
     }
     try {
-        await mailTransporter.sendMail({
-            from: `Portfolio Contact Form <${process.env.GMAIL_USER}>`,
-            to: process.env.NOTIFY_EMAIL || process.env.GMAIL_USER,
-            replyTo: msg.email,
-            subject: `New portfolio message from ${msg.name}`,
-            text: `From: ${msg.name} <${msg.email}>\n\n${msg.message}`,
-            html: `<p><strong>From:</strong> ${escapeHtml(msg.name)} &lt;${escapeHtml(msg.email)}&gt;</p><p>${escapeHtml(msg.message).replace(/\n/g, '<br>')}</p>`,
+        const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                from: 'Portfolio Contact Form <onboarding@resend.dev>',
+                to: process.env.NOTIFY_EMAIL,
+                reply_to: msg.email,
+                subject: `New portfolio message from ${msg.name}`,
+                text: `From: ${msg.name} <${msg.email}>\n\n${msg.message}`,
+                html: `<p><strong>From:</strong> ${escapeHtml(msg.name)} &lt;${escapeHtml(msg.email)}&gt;</p><p>${escapeHtml(msg.message).replace(/\n/g, '<br>')}</p>`,
+            }),
         });
+        if (!res.ok) {
+            throw new Error(`Resend API responded ${res.status}: ${await res.text()}`);
+        }
         console.log('Notification email sent for message ' + msg.id + ' (attempt ' + attempt + ')');
     } catch (err) {
         console.error('Failed to send notification email (attempt ' + attempt + '):', err.message);
