@@ -105,6 +105,13 @@ const uploadMemory = multer({
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
+// Vercel's Hobby-plan functions get killed at ~10s, and the whole email
+// attempt has to fit inside that (on top of everything else the request
+// already did) - so use a single short-timeout attempt there instead of the
+// multi-retry approach Render/local can afford.
+const MAIL_TIMEOUT_MS = IS_VERCEL ? 7000 : 10000;
+const MAIL_MAX_ATTEMPTS = IS_VERCEL ? 1 : 3;
+
 let mailTransporter = null;
 if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
     mailTransporter = nodemailer.createTransport({
@@ -115,9 +122,9 @@ if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
             user: process.env.GMAIL_USER,
             pass: process.env.GMAIL_APP_PASSWORD,
         },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
+        connectionTimeout: MAIL_TIMEOUT_MS,
+        greetingTimeout: MAIL_TIMEOUT_MS,
+        socketTimeout: MAIL_TIMEOUT_MS,
     });
 }
 
@@ -142,11 +149,11 @@ async function sendContactNotification(msg, attempt = 1) {
         console.log('Notification email sent for message ' + msg.id + ' (attempt ' + attempt + ')');
     } catch (err) {
         console.error('Failed to send notification email (attempt ' + attempt + '):', err.message);
-        if (attempt < 3) {
+        if (attempt < MAIL_MAX_ATTEMPTS) {
             await sleep(attempt * 2000);
             return sendContactNotification(msg, attempt + 1);
         }
-        console.error('Giving up on notification email for message ' + msg.id + ' after 3 attempts.');
+        console.error('Giving up on notification email for message ' + msg.id + ' after ' + attempt + ' attempt(s).');
     }
 }
 
@@ -446,9 +453,16 @@ app.post('/api/contact', async (req, res) => {
     messages.unshift(newMessage);
     writeMessages(messages);
 
-    // Not awaited - the visitor's form submission responds immediately;
-    // the email attempt (with its own retries) keeps running in the background.
-    sendContactNotification(newMessage);
+    if (IS_VERCEL) {
+        // Serverless functions can freeze/terminate right after the response
+        // is sent - a fire-and-forget send here would frequently never
+        // complete. Await it so the function stays alive until it's done.
+        await sendContactNotification(newMessage);
+    } else {
+        // Not awaited - the visitor's form submission responds immediately;
+        // the email attempt (with its own retries) keeps running in the background.
+        sendContactNotification(newMessage);
+    }
 
     res.status(201).json({ ok: true });
 });
