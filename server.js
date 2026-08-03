@@ -43,15 +43,14 @@ const uploadMemory = multer({
 });
 
 let mailTransporter = null;
-if (process.env.BREVO_SMTP_LOGIN && process.env.BREVO_SMTP_KEY) {
+if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
     mailTransporter = nodemailer.createTransport({
-        host: 'smtp-relay.brevo.com',
-        port: 587,
-        secure: false,
-        requireTLS: true,
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
-            user: process.env.BREVO_SMTP_LOGIN,
-            pass: process.env.BREVO_SMTP_KEY,
+            user: process.env.GMAIL_USER,
+            pass: process.env.GMAIL_APP_PASSWORD,
         },
         connectionTimeout: 20000,
         greetingTimeout: 20000,
@@ -65,13 +64,13 @@ function sleep(ms) {
 
 async function sendContactNotification(msg, attempt = 1) {
     if (!mailTransporter) {
-        console.log('Email not configured (missing BREVO_SMTP_LOGIN/BREVO_SMTP_KEY) - skipping notification email.');
+        console.log('Email not configured (missing GMAIL_USER/GMAIL_APP_PASSWORD) - skipping notification email.');
         return;
     }
     try {
         await mailTransporter.sendMail({
-            from: `Portfolio Contact Form <${process.env.FROM_EMAIL || process.env.NOTIFY_EMAIL}>`,
-            to: process.env.NOTIFY_EMAIL,
+            from: `Portfolio Contact Form <${process.env.GMAIL_USER}>`,
+            to: process.env.NOTIFY_EMAIL || process.env.GMAIL_USER,
             replyTo: msg.email,
             subject: `New portfolio message from ${msg.name}`,
             text: `From: ${msg.name} <${msg.email}>\n\n${msg.message}`,
