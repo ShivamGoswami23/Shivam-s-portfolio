@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
+const sharp = require('sharp');
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 
@@ -36,18 +37,33 @@ function ensurePhotoSlotsExist() {
     }
 }
 
+// iPhones sometimes export photos with a .jpg extension (and even an
+// "image/jpeg" browser-reported mimetype) while the actual bytes are still
+// HEIC/HEIF - browsers can't render that, so it silently shows as a broken
+// image. Detect it from the real file signature so we can reject it with a
+// clear, actionable message instead of writing an unusable file.
+const HEIF_BRANDS = ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1'];
+function isHeic(buffer) {
+    return buffer.length > 12
+        && buffer.slice(4, 8).toString('ascii') === 'ftyp'
+        && HEIF_BRANDS.includes(buffer.slice(8, 12).toString('ascii'));
+}
+
+// Re-encodes to guarantee the bytes on disk actually match what they claim to
+// be, regardless of what the browser reported as the mimetype/extension.
+async function normalizeImageBuffer(buffer, { forceJpeg = false } = {}) {
+    if (isHeic(buffer)) {
+        throw new Error('That looks like an iPhone HEIC photo, which browsers can\'t display. Please convert it to JPG first (iPhone: Settings > Camera > Formats > Most Compatible, or use "Export as JPEG" when sharing the photo), then upload again.');
+    }
+    const image = sharp(buffer).rotate();
+    return forceJpeg ? image.jpeg({ quality: 90 }).toBuffer() : image.toBuffer();
+}
+
 const upload = multer({
-    storage: multer.diskStorage({
-        destination: (req, file, cb) => cb(null, IMAGES_DIR),
-        filename: (req, file, cb) => {
-            const ext = path.extname(file.originalname).toLowerCase();
-            const safeName = crypto.randomBytes(8).toString('hex') + ext;
-            cb(null, safeName);
-        },
-    }),
+    storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     fileFilter: (req, file, cb) => {
-        if (/^image\/(png|jpe?g|webp|gif|svg\+xml)$/.test(file.mimetype)) return cb(null, true);
+        if (/^image\/(png|jpe?g|webp|gif|svg\+xml|heic|heif)$/.test(file.mimetype)) return cb(null, true);
         cb(new Error('Only image files are allowed'));
     },
 });
@@ -424,10 +440,24 @@ app.delete('/api/admin/messages/:id', requireAuth, (req, res) => {
 
 // Admin: image upload (for project thumbnails, etc.)
 app.post('/api/admin/upload', requireAuth, (req, res) => {
-    upload.single('image')(req, res, (err) => {
+    upload.single('image')(req, res, async (err) => {
         if (err) return res.status(400).json({ error: err.message });
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-        res.json({ path: `images/${req.file.filename}` });
+
+        try {
+            let buffer = req.file.buffer;
+            let ext = '.svg';
+            if (req.file.mimetype !== 'image/svg+xml') {
+                buffer = await normalizeImageBuffer(req.file.buffer);
+                const format = (await sharp(buffer).metadata()).format;
+                ext = '.' + (format === 'jpeg' ? 'jpg' : format);
+            }
+            const safeName = crypto.randomBytes(8).toString('hex') + ext;
+            fs.writeFileSync(path.join(IMAGES_DIR, safeName), buffer);
+            res.json({ path: `images/${safeName}` });
+        } catch (convErr) {
+            res.status(400).json({ error: convErr.message });
+        }
     });
 });
 
@@ -442,14 +472,19 @@ app.post('/api/admin/upload-photo/:slot', requireAuth, (req, res) => {
     const slotPath = PHOTO_SLOTS[req.params.slot];
     if (!slotPath) return res.status(400).json({ error: 'Unknown photo slot' });
 
-    uploadMemory.single('photo')(req, res, (err) => {
+    uploadMemory.single('photo')(req, res, async (err) => {
         if (err) return res.status(400).json({ error: err.message });
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-        if (!/^image\/(png|jpe?g|webp)$/.test(req.file.mimetype)) {
+        if (!/^image\/(png|jpe?g|webp|heic|heif)$/.test(req.file.mimetype)) {
             return res.status(400).json({ error: 'Please upload a JPG, PNG, or WEBP image' });
         }
 
-        fs.writeFileSync(slotPath, req.file.buffer);
+        try {
+            const normalized = await normalizeImageBuffer(req.file.buffer, { forceJpeg: true });
+            fs.writeFileSync(slotPath, normalized);
+        } catch (convErr) {
+            return res.status(400).json({ error: convErr.message });
+        }
 
         const versionKey = PHOTO_SLOT_VERSION_KEYS[req.params.slot];
         const site = readSite();
