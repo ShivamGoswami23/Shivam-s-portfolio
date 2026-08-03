@@ -24,15 +24,15 @@
 }
 
 :root {
-    --white: #121212;
-    --gray: #8a8a8a;
-    --graydark: #b3b3b3;
-    --black: #f2f2f0;
-    --surface: #1c1c1f;
-    --surface-2: #232327;
-    --border-soft: rgba(255, 255, 255, 0.08);
-    --accent: #ff7a1a;
-    --accent-dark: #e5690a;
+    --white: #eef2f8;
+    --gray: #6b7280;
+    --graydark: #3d4451;
+    --black: #12151c;
+    --surface: #ffffff;
+    --surface-2: #e4e9f1;
+    --border-soft: rgba(18, 21, 28, 0.08);
+    --accent: #2f6fed;
+    --accent-dark: #1d4ed8;
 }
 
 *::selection {
@@ -730,7 +730,7 @@ nav img {
     left: 50%;
     transform: translate(-50%, -50%);
     height: 0;
-    background-color: var(--black);
+    background-color: var(--accent);
     width: 100%;
     transition: linear 0.25s;
 }
@@ -790,7 +790,6 @@ nav img {
     text-transform: uppercase;
     width: 700%;
     overflow: hidden;
-    mix-blend-mode: difference;
 }
 
 .project i {
@@ -800,7 +799,6 @@ nav img {
     margin-right: -1.25vw;
     z-index: 11;
     font-weight: normal;
-    mix-blend-mode: difference;
 }
 
 /* SKILLS */
@@ -2957,7 +2955,7 @@ nav img {
     position: absolute;
     top: 3vw;
     right: 4vw;
-    color: var(--black);
+    color: #ffffff;
     font-size: 4vw;
     font-weight: bold;
     cursor: pointer;
@@ -2968,5 +2966,5 @@ nav img {
 }
 
 .cert-modal-close:hover {
-    color: var(--gray);
+    color: #b3b3b3;
 }
