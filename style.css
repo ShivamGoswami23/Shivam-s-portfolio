@@ -259,32 +259,28 @@ nav img {
         10px 10px 30px var(--clay-shadow-dark);
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 3vw;
+    position: relative;
+    overflow: hidden;
 }
 
 .hero-left {
-    flex: 1 1 auto;
-    min-width: 0;
+    position: relative;
+    z-index: 2;
+    max-width: 42%;
 }
 
 .hero-right {
-    flex: 0 0 auto;
-    position: relative;
-    width: 28vw;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 56%;
+    z-index: 1;
 }
 
 .hero-right::before {
-    content: "";
-    position: absolute;
-    width: 23vw;
-    height: 23vw;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(91, 157, 246, 0.28), rgba(91, 157, 246, 0) 72%);
-    z-index: 0;
+    display: none;
 }
 
 #landing-page h1 {
@@ -446,22 +442,19 @@ nav img {
     position: relative;
     z-index: 1;
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    height: 100%;
 }
 
 .profile-img img {
     width: 100%;
-    height: 32vw;
+    height: 100%;
     object-fit: cover;
-    object-position: center top;
+    object-position: center 15%;
     margin-top: 0;
-    border-radius: 28px;
-    box-shadow:
-        -10px -10px 22px var(--clay-shadow-light),
-        10px 10px 28px var(--clay-shadow-dark);
-    border: 4px solid #ffffff;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    clip-path: polygon(28% 0, 100% 0, 100% 100%, 0% 100%);
 }
 
 .bounding {
@@ -1830,14 +1823,14 @@ nav img {
         gap: 5vw;
     }
 
-    .hero-right {
-        order: -1;
-        width: 100%;
+    .hero-left {
+        max-width: 100%;
     }
 
-    .hero-right::before {
-        width: 40vw;
-        height: 40vw;
+    .hero-right {
+        position: static;
+        order: -1;
+        width: 100%;
     }
 
     #landing-page h1 {
@@ -1898,6 +1891,7 @@ nav img {
         align-items: center;
         justify-content: center;
         width: 100%;
+        height: auto;
     }
 
     .profile-img img {
@@ -1908,6 +1902,7 @@ nav img {
         border-radius: 22px;
         object-fit: cover;
         border: 4px solid #ffffff;
+        clip-path: none;
         box-shadow:
             -8px -8px 18px var(--clay-shadow-light),
             8px 8px 22px var(--clay-shadow-dark);
@@ -2519,14 +2514,14 @@ nav img {
         gap: 6vw;
     }
 
-    .hero-right {
-        order: -1;
-        width: 100%;
+    .hero-left {
+        max-width: 100%;
     }
 
-    .hero-right::before {
-        width: 45vw;
-        height: 45vw;
+    .hero-right {
+        position: static;
+        order: -1;
+        width: 100%;
     }
 
     #landing-page h1 {
@@ -2588,6 +2583,7 @@ nav img {
         align-items: center;
         justify-content: center;
         width: 100%;
+        height: auto;
     }
 
     .profile-img img {
@@ -2598,6 +2594,7 @@ nav img {
         border-radius: 18px;
         object-fit: cover;
         border: 4px solid #ffffff;
+        clip-path: none;
         box-shadow:
             -6px -6px 14px var(--clay-shadow-light),
             6px 6px 18px var(--clay-shadow-dark);
