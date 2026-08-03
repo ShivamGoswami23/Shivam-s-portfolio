@@ -31,8 +31,8 @@
     --surface: #ffffff;
     --surface-2: #e4e9f1;
     --border-soft: rgba(18, 21, 28, 0.08);
-    --accent: #8b7cf6;
-    --accent-dark: #6d4fe0;
+    --accent: #5b9df6;
+    --accent-dark: #3b82f6;
 }
 
 *::selection {
@@ -226,8 +226,8 @@ nav img {
     --clay-bg: #eef2f8;
     --clay-text: #12151c;
     --clay-text-muted: #5b6472;
-    --clay-blue: #8b7cf6;
-    --clay-blue-dark: #6d4fe0;
+    --clay-blue: #5b9df6;
+    --clay-blue-dark: #3b82f6;
     --clay-shadow-dark: rgba(31, 45, 61, 0.18);
     --clay-shadow-light: rgba(255, 255, 255, 0.85);
 
@@ -319,7 +319,7 @@ nav img {
 }
 
 .hero-btn-primary {
-    background: linear-gradient(145deg, #ab9df8, var(--clay-blue));
+    background: linear-gradient(145deg, #8ec1fb, var(--clay-blue));
     color: #fff;
     box-shadow:
         -6px -6px 14px var(--clay-shadow-light),
@@ -369,7 +369,7 @@ nav img {
 }
 
 .hero-socials a:hover {
-    background: linear-gradient(145deg, #ab9df8, var(--clay-blue));
+    background: linear-gradient(145deg, #8ec1fb, var(--clay-blue));
     color: #fff;
     transform: translateY(-2px);
 }
