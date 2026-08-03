@@ -201,7 +201,7 @@ function resetForm() {
 function updateImagePreview() {
     const val = projectImageInput.value.trim();
     if (val) {
-        imagePreview.src = `/${val}`;
+        imagePreview.src = resolveImageSrc(val);
         imagePreview.style.display = 'block';
     } else {
         imagePreview.style.display = 'none';
@@ -253,7 +253,7 @@ function renderProjects(projects) {
         const row = document.createElement('div');
         row.className = 'project-row';
         row.innerHTML = `
-            <img src="/${p.image}" alt="">
+            <img src="${resolveImageSrc(p.image)}" alt="">
             <div class="info">
                 <strong>${escapeHtml(p.title)}</strong>
                 <span>${escapeHtml(p.url)}</span>
@@ -273,6 +273,15 @@ function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+}
+
+// Uploads now return either a site-relative path (images/abc.jpg, local disk
+// mode) or a full Supabase Storage URL (https://..., when Supabase is
+// configured). Blindly prepending "/" broke the second case - it turned
+// "https://xyz.supabase.co/..." into "/https://xyz.supabase.co/...", an
+// invalid path on our own origin.
+function resolveImageSrc(image) {
+    return /^https?:\/\//.test(image) ? image : `/${image}`;
 }
 
 function startEdit(p) {
@@ -401,7 +410,7 @@ function resetCertForm() {
 function updateCertImagePreview() {
     const val = certImageInput.value.trim();
     if (val) {
-        certImagePreview.src = `/${val}`;
+        certImagePreview.src = resolveImageSrc(val);
         certImagePreview.style.display = 'block';
     } else {
         certImagePreview.style.display = 'none';
@@ -479,7 +488,7 @@ function renderCertificates(certificates) {
         const row = document.createElement('div');
         row.className = 'project-row';
         row.innerHTML = `
-            <img src="/${c.image}" alt="">
+            <img src="${resolveImageSrc(c.image)}" alt="">
             <div class="info">
                 <strong>${escapeHtml(c.title)}</strong>
                 <span>${escapeHtml(c.issuer || '')}</span>
