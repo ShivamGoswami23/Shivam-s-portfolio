@@ -134,9 +134,24 @@ document.getElementById('resume-file').addEventListener('change', async (e) => {
     }
 });
 
-function showLogin() {
+function showLogin(message) {
     loginScreen.style.display = 'flex';
     adminScreen.style.display = 'none';
+    if (message) loginError.textContent = message;
+}
+
+// Wraps fetch for admin-only endpoints: if the session cookie is missing or
+// expired, the API returns 401 - without this check, code that assumes the
+// response body is always the expected data (an array, an object) would
+// silently misread {"error":"Unauthorized"} as "no data" instead of
+// recognizing the session dropped and prompting a fresh login.
+async function fetchJson(url, options) {
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+        showLogin('Your session expired - please log in again.');
+        return null;
+    }
+    return res.json();
 }
 
 async function checkSession() {
@@ -313,9 +328,8 @@ projectForm.addEventListener('submit', async (e) => {
 });
 
 async function loadMessages() {
-    const res = await fetch('/api/admin/messages');
-    const messages = await res.json();
-    renderMessages(messages);
+    const messages = await fetchJson('/api/admin/messages');
+    if (messages) renderMessages(messages);
 }
 
 function renderMessages(messages) {
@@ -586,8 +600,8 @@ document.getElementById('add-education-btn').addEventListener('click', () => {
 });
 
 async function loadResumeData() {
-    const res = await fetch('/api/admin/resume-data');
-    const data = await res.json();
+    const data = await fetchJson('/api/admin/resume-data');
+    if (!data) return;
 
     document.getElementById('resume-name').value = data.name || '';
     document.getElementById('resume-title').value = data.title || '';

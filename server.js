@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -191,12 +190,51 @@ async function sendContactNotification(msg, attempt = 1) {
 }
 
 app.use(express.json());
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'dev-only-secret-change-me',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 * 8 } // 8 hours
-}));
+
+// Stateless admin auth: a signed, expiring cookie instead of a server-side
+// session. express-session's default in-memory store only exists on
+// whichever single instance created it - on Vercel, a different serverless
+// instance (which happens constantly) has never heard of that session,
+// so logins would randomly appear to "not be logged in" on the very next
+// request. A signed cookie carries everything needed to verify itself, so
+// it works identically no matter which instance handles the request.
+const ADMIN_COOKIE = 'admin_token';
+const ADMIN_COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 8; // 8 hours
+const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-only-secret-change-me';
+
+function signAdminToken() {
+    const payload = Buffer.from(JSON.stringify({ exp: Date.now() + ADMIN_COOKIE_MAX_AGE_MS })).toString('base64url');
+    const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+    return `${payload}.${sig}`;
+}
+
+function isValidAdminToken(token) {
+    if (!token) return false;
+    const [payload, sig] = token.split('.');
+    if (!payload || !sig) return false;
+    const expectedSig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+    if (sig !== expectedSig) return false;
+    try {
+        return JSON.parse(Buffer.from(payload, 'base64url').toString()).exp > Date.now();
+    } catch {
+        return false;
+    }
+}
+
+function parseCookies(req) {
+    const header = req.headers.cookie;
+    if (!header) return {};
+    return Object.fromEntries(header.split(';').map((c) => {
+        const idx = c.indexOf('=');
+        return [c.slice(0, idx).trim(), decodeURIComponent(c.slice(idx + 1))];
+    }));
+}
+
+function setAdminCookie(req, res, token) {
+    const secure = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https';
+    const maxAge = token ? Math.floor(ADMIN_COOKIE_MAX_AGE_MS / 1000) : 0;
+    res.setHeader('Set-Cookie', `${ADMIN_COOKIE}=${token || ''}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure ? '; Secure' : ''}`);
+}
 
 const readProjects = () => readJsonStore('projects', PROJECTS_FILE);
 const writeProjects = (projects) => writeJsonStore('projects', PROJECTS_FILE, projects);
@@ -310,7 +348,7 @@ function renderCertificatesHtml(certificates) {
 }
 
 function requireAuth(req, res, next) {
-    if (req.session && req.session.isAdmin) return next();
+    if (isValidAdminToken(parseCookies(req)[ADMIN_COOKIE])) return next();
     return res.status(401).json({ error: 'Unauthorized' });
 }
 
@@ -349,18 +387,19 @@ app.get('/api/site', async (req, res) => {
 app.post('/api/admin/login', (req, res) => {
     const { username, password } = req.body || {};
     if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
-        req.session.isAdmin = true;
+        setAdminCookie(req, res, signAdminToken());
         return res.json({ ok: true });
     }
     res.status(401).json({ error: 'Invalid username or password' });
 });
 
 app.post('/api/admin/logout', (req, res) => {
-    req.session.destroy(() => res.json({ ok: true }));
+    setAdminCookie(req, res, null);
+    res.json({ ok: true });
 });
 
 app.get('/api/admin/session', (req, res) => {
-    res.json({ isAdmin: !!(req.session && req.session.isAdmin) });
+    res.json({ isAdmin: isValidAdminToken(parseCookies(req)[ADMIN_COOKIE]) });
 });
 
 // Admin project CRUD
