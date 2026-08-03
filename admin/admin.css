@@ -113,13 +113,65 @@ body {
     border-color: #fff;
 }
 
+.admin-body {
+    display: flex;
+    align-items: flex-start;
+    height: calc(100vh - 61px);
+}
+
+.admin-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    height: 100%;
+    background: #fff;
+    border-right: 1px solid #e5e5e5;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 12px;
+    gap: 4px;
+    overflow-y: auto;
+}
+
+.sidebar-tab {
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #555;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-tab:hover {
+    background: #f0f0f0;
+    color: #111;
+}
+
+.sidebar-tab.active {
+    background: #111;
+    color: #fff;
+    font-weight: 600;
+}
+
 .admin-main {
+    flex: 1;
+    height: 100%;
+    overflow-y: auto;
     max-width: 900px;
     margin: 0 auto;
     padding: 32px 20px 80px;
-    display: flex;
+}
+
+.tab-panel {
+    display: none;
     flex-direction: column;
     gap: 32px;
+}
+
+.tab-panel.active {
+    display: flex;
 }
 
 .panel {
