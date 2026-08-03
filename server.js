@@ -8,7 +8,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
-const { Redis } = require('@upstash/redis');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,29 +52,32 @@ function seedWritableStorage() {
 seedWritableStorage();
 
 // JSON data (messages/projects/certificates/site/resume) lives in a real,
-// shared store when one's configured - a local/Render file only exists on
+// shared database when one's configured - a local/Render file only exists on
 // that one instance/disk, which is exactly why messages saved on Vercel
 // weren't showing up in the admin panel (a different serverless instance,
 // with its own empty /tmp, served that later request). Falls back to the
-// file-based behavior when no KV database is connected.
-const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const kv = KV_URL && KV_TOKEN ? new Redis({ url: KV_URL, token: KV_TOKEN }) : null;
+// file-based behavior when no Supabase project is connected.
+const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY
+    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
+    : null;
 
 async function readJsonStore(key, filePath) {
-    if (kv) {
-        const cached = await kv.get(key);
-        if (cached !== null && cached !== undefined) return cached;
+    if (supabase) {
+        const { data, error } = await supabase.from('kv_store').select('value').eq('key', key).maybeSingle();
+        if (error) throw new Error('Supabase read failed: ' + error.message);
+        if (data) return data.value;
         const seed = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        await kv.set(key, seed);
+        const { error: seedErr } = await supabase.from('kv_store').upsert({ key, value: seed });
+        if (seedErr) throw new Error('Supabase seed failed: ' + seedErr.message);
         return seed;
     }
     return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 }
 
 async function writeJsonStore(key, filePath, data) {
-    if (kv) {
-        await kv.set(key, data);
+    if (supabase) {
+        const { error } = await supabase.from('kv_store').upsert({ key, value: data });
+        if (error) throw new Error('Supabase write failed: ' + error.message);
         return;
     }
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
