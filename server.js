@@ -45,15 +45,24 @@ const uploadMemory = multer({
 let mailTransporter = null;
 if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
     mailTransporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
             user: process.env.GMAIL_USER,
             pass: process.env.GMAIL_APP_PASSWORD,
         },
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 20000,
     });
 }
 
-async function sendContactNotification(msg) {
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function sendContactNotification(msg, attempt = 1) {
     if (!mailTransporter) {
         console.log('Email not configured (missing GMAIL_APP_PASSWORD) - skipping notification email.');
         return;
@@ -67,9 +76,14 @@ async function sendContactNotification(msg) {
             text: `From: ${msg.name} <${msg.email}>\n\n${msg.message}`,
             html: `<p><strong>From:</strong> ${escapeHtml(msg.name)} &lt;${escapeHtml(msg.email)}&gt;</p><p>${escapeHtml(msg.message).replace(/\n/g, '<br>')}</p>`,
         });
-        console.log('Notification email sent for message ' + msg.id);
+        console.log('Notification email sent for message ' + msg.id + ' (attempt ' + attempt + ')');
     } catch (err) {
-        console.error('Failed to send notification email:', err.message);
+        console.error('Failed to send notification email (attempt ' + attempt + '):', err.message);
+        if (attempt < 3) {
+            await sleep(attempt * 2000);
+            return sendContactNotification(msg, attempt + 1);
+        }
+        console.error('Giving up on notification email for message ' + msg.id + ' after 3 attempts.');
     }
 }
 
