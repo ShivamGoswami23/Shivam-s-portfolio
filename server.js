@@ -82,6 +82,26 @@ async function writeJsonStore(key, filePath, data) {
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
+// Uploaded image files (project thumbnails, certificate scans) have the same
+// problem as the JSON data: writing them to /tmp only puts them on whichever
+// single Vercel instance handled that request, so they'd show up broken as
+// soon as a different instance serves the page. Supabase Storage is real,
+// shared, persistent file storage - falls back to local disk when it's not
+// configured (matches the JSON data layer's fallback behavior).
+async function uploadFileToStorage(buffer, storagePath, contentType) {
+    if (supabase) {
+        const { error } = await supabase.storage.from('images').upload(storagePath, buffer, {
+            contentType,
+            upsert: true,
+        });
+        if (error) throw new Error('Supabase storage upload failed: ' + error.message);
+        const { data } = supabase.storage.from('images').getPublicUrl(storagePath);
+        return data.publicUrl;
+    }
+    fs.writeFileSync(path.join(IMAGES_DIR, storagePath), buffer);
+    return `images/${storagePath}`;
+}
+
 // Three independently-editable homepage photo slots (hero, about, background).
 // Each falls back to a copy of the original portrait until an admin uploads
 // its own image, and "delete" resets it back to that same default.
@@ -537,15 +557,17 @@ app.post('/api/admin/upload', requireAuth, (req, res) => {
 
         try {
             let buffer = req.file.buffer;
-            let ext = '.svg';
+            let ext = 'svg';
+            let contentType = 'image/svg+xml';
             if (req.file.mimetype !== 'image/svg+xml') {
                 buffer = await normalizeImageBuffer(req.file.buffer);
                 const format = (await sharp(buffer).metadata()).format;
-                ext = '.' + (format === 'jpeg' ? 'jpg' : format);
+                ext = format === 'jpeg' ? 'jpg' : format;
+                contentType = `image/${ext}`;
             }
-            const safeName = crypto.randomBytes(8).toString('hex') + ext;
-            fs.writeFileSync(path.join(IMAGES_DIR, safeName), buffer);
-            res.json({ path: `images/${safeName}` });
+            const safeName = crypto.randomBytes(8).toString('hex') + '.' + ext;
+            const imagePath = await uploadFileToStorage(buffer, safeName, contentType);
+            res.json({ path: imagePath });
         } catch (convErr) {
             res.status(400).json({ error: convErr.message });
         }
