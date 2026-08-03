@@ -26,6 +26,7 @@ function showAdmin() {
     loginScreen.style.display = 'none';
     adminScreen.style.display = 'block';
     loadProjects();
+    loadCertificates();
     loadMessages();
     loadSiteAssets();
     loadResumeData();
@@ -313,6 +314,157 @@ async function deleteMessage(m) {
         alert('Failed to delete message.');
     }
 }
+
+// CERTIFICATES
+
+const certificatesList = document.getElementById('certificates-list');
+const certificateForm = document.getElementById('certificate-form');
+const certFormTitle = document.getElementById('cert-form-title');
+const certFormError = document.getElementById('cert-form-error');
+const certSaveBtn = document.getElementById('cert-save-btn');
+const certCancelEditBtn = document.getElementById('cert-cancel-edit-btn');
+
+const certIdInput = document.getElementById('cert-id');
+const certTitleInput = document.getElementById('cert-title');
+const certIssuerInput = document.getElementById('cert-issuer');
+const certImageInput = document.getElementById('cert-image');
+const certImageFileInput = document.getElementById('cert-image-file');
+const certImagePreview = document.getElementById('cert-image-preview');
+const certUploadStatus = document.getElementById('cert-upload-status');
+
+function resetCertForm() {
+    certIdInput.value = '';
+    certificateForm.reset();
+    certFormTitle.textContent = 'Add New Certificate';
+    certSaveBtn.textContent = 'Add Certificate';
+    certCancelEditBtn.style.display = 'none';
+    certFormError.textContent = '';
+    certUploadStatus.textContent = '';
+    updateCertImagePreview();
+}
+
+function updateCertImagePreview() {
+    const val = certImageInput.value.trim();
+    if (val) {
+        certImagePreview.src = `/${val}`;
+        certImagePreview.style.display = 'block';
+    } else {
+        certImagePreview.style.display = 'none';
+    }
+}
+
+certImageInput.addEventListener('input', updateCertImagePreview);
+
+certImageFileInput.addEventListener('change', async () => {
+    const file = certImageFileInput.files[0];
+    if (!file) return;
+
+    certUploadStatus.textContent = 'Uploading...';
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+        certImageInput.value = data.path;
+        updateCertImagePreview();
+        certUploadStatus.textContent = 'Uploaded ✓';
+    } catch (err) {
+        certUploadStatus.textContent = err.message;
+    } finally {
+        certImageFileInput.value = '';
+    }
+});
+
+certCancelEditBtn.addEventListener('click', resetCertForm);
+
+async function loadCertificates() {
+    const res = await fetch('/api/certificates');
+    const certificates = await res.json();
+    renderCertificates(certificates);
+}
+
+function renderCertificates(certificates) {
+    certificatesList.innerHTML = '';
+
+    if (!certificates.length) {
+        certificatesList.innerHTML = '<p class="empty-state">No certificates yet — add your first one below.</p>';
+        return;
+    }
+
+    certificates.forEach((c) => {
+        const row = document.createElement('div');
+        row.className = 'project-row';
+        row.innerHTML = `
+            <img src="/${c.image}" alt="">
+            <div class="info">
+                <strong>${escapeHtml(c.title)}</strong>
+                <span>${escapeHtml(c.issuer || '')}</span>
+            </div>
+            <div class="row-actions">
+                <button class="edit-btn">Edit</button>
+                <button class="delete-btn">Delete</button>
+            </div>
+        `;
+        row.querySelector('.edit-btn').addEventListener('click', () => startEditCert(c));
+        row.querySelector('.delete-btn').addEventListener('click', () => deleteCertificate(c));
+        certificatesList.appendChild(row);
+    });
+}
+
+function startEditCert(c) {
+    certIdInput.value = c.id;
+    certTitleInput.value = c.title;
+    certIssuerInput.value = c.issuer || '';
+    certImageInput.value = c.image;
+    certFormTitle.textContent = 'Edit Certificate';
+    certSaveBtn.textContent = 'Save Changes';
+    certCancelEditBtn.style.display = 'inline-block';
+    certFormError.textContent = '';
+    certUploadStatus.textContent = '';
+    updateCertImagePreview();
+    certificateForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function deleteCertificate(c) {
+    if (!confirm(`Delete "${c.title}"? This can't be undone.`)) return;
+    const res = await fetch(`/api/admin/certificates/${c.id}`, { method: 'DELETE' });
+    if (res.ok) {
+        loadCertificates();
+    } else {
+        alert('Failed to delete certificate.');
+    }
+}
+
+certificateForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    certFormError.textContent = '';
+
+    const payload = {
+        title: certTitleInput.value.trim(),
+        issuer: certIssuerInput.value.trim(),
+        image: certImageInput.value.trim(),
+    };
+
+    const id = certIdInput.value;
+    const isEdit = Boolean(id);
+
+    const res = await fetch(isEdit ? `/api/admin/certificates/${id}` : '/api/admin/certificates', {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+        resetCertForm();
+        loadCertificates();
+    } else {
+        const data = await res.json().catch(() => ({}));
+        certFormError.textContent = data.error || 'Something went wrong.';
+    }
+});
 
 // RESUME EDITOR
 

@@ -147,6 +147,40 @@
             </section>
 
             <section class="panel">
+                <h2>Certificates</h2>
+                <div id="certificates-list" class="projects-list"></div>
+            </section>
+
+            <section class="panel">
+                <h2 id="cert-form-title">Add New Certificate</h2>
+                <form id="certificate-form" class="project-form">
+                    <input type="hidden" id="cert-id" />
+                    <label>Title
+                        <input type="text" id="cert-title" placeholder="e.g. MERN Stack Developer" required />
+                    </label>
+                    <label>Issuer / Organization
+                        <input type="text" id="cert-issuer" placeholder="e.g. Be Practical Tech Solutions" />
+                    </label>
+                    <label>Certificate Image
+                        <div class="image-field">
+                            <img id="cert-image-preview" class="image-preview" style="display:none;" alt="">
+                            <input type="text" id="cert-image" placeholder="images/example.png" required />
+                            <label class="upload-btn">
+                                Upload Image
+                                <input type="file" id="cert-image-file" accept="image/*" hidden />
+                            </label>
+                        </div>
+                        <span id="cert-upload-status" class="upload-status"></span>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" id="cert-save-btn">Add Certificate</button>
+                        <button type="button" id="cert-cancel-edit-btn" style="display:none;">Cancel</button>
+                    </div>
+                    <p id="cert-form-error" class="error"></p>
+                </form>
+            </section>
+
+            <section class="panel">
                 <h2>Messages</h2>
                 <div id="messages-list" class="messages-list"></div>
             </section>

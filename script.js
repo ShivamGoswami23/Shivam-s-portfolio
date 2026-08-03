@@ -444,15 +444,15 @@ const certModalHandler = () => {
     const modal = document.querySelector("#cert-modal");
     const modalImg = document.querySelector("#cert-modal-img");
     const closeModal = document.querySelector(".cert-modal-close");
-    const certLinks = document.querySelectorAll(".cert a, .cert-img");
+    const certLinks = document.querySelectorAll("#certifications .cert a, #certifications .cert-img");
 
     if (modal && modalImg) {
         certLinks.forEach(link => {
             link.addEventListener("click", (e) => {
                 e.preventDefault();
-                const targetImg = link.querySelector("img") || document.querySelector("#mern-cert-img");
-                const imgSrc = targetImg ? targetImg.getAttribute("src") : "images/mern-cert.png";
-                modalImg.src = imgSrc;
+                const targetImg = link.querySelector("img");
+                if (!targetImg) return;
+                modalImg.src = targetImg.getAttribute("src");
                 modal.classList.add("active");
             });
         });

@@ -1013,6 +1013,99 @@ nav img {
 
 /* CERTIFICATIONS */
 
+#education {
+    width: 100vw;
+    position: relative;
+    background-color: var(--white);
+    padding: 3vw 6vw;
+    padding-top: 5vw;
+    padding-bottom: 10vw;
+}
+
+#education h1 {
+    position: relative;
+    width: fit-content;
+    font-size: 10vw;
+    color: var(--black);
+    letter-spacing: -5px;
+    font-weight: 100;
+    text-align: left;
+    border-bottom: 3px solid var(--black);
+    line-height: 1;
+    font-family: Fjalla one;
+    margin-bottom: 3.5vw;
+}
+
+#education .cert-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+#education .cert {
+    height: 45vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8vw;
+    overflow: hidden;
+    padding: 0 5vw;
+}
+
+#education .cert a {
+    text-decoration: none;
+    color: var(--black);
+}
+
+#education .cert h3 {
+    font-family: Fjalla one, sans-serif;
+    font-weight: 100;
+    font-size: 5.25vw;
+    line-height: 1;
+    text-transform: uppercase;
+    width: 50%;
+    line-height: 1.25;
+    position: relative;
+}
+
+#education .cert h3::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    width: 0;
+    background-color: var(--black);
+    transition: all ease-in 0.18s;
+}
+
+#education .cert h3:hover::after {
+    width: 95%;
+}
+
+#education .cert h3 span {
+    color: var(--black);
+    font-family: GilroyTI;
+}
+
+#education .cert .cert-img {
+    position: relative;
+    height: 100%;
+    width: 40%;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    transition: linear 0.2s;
+}
+
+#education .cert .cert-img img {
+    width: 100%;
+    object-fit: contain;
+}
+
 #certifications {
     width: 100vw;
     position: relative;
@@ -1020,6 +1113,7 @@ nav img {
     padding: 3vw 6vw;
     padding-top: 5vw;
     padding-bottom: 10vw;
+    border-top: 1.5px solid var(--black);
 }
 
 #certifications h1 {
@@ -1053,6 +1147,7 @@ nav img {
     margin-top: 8vw;
     overflow: hidden;
     padding: 0 5vw;
+    cursor: pointer;
 }
 
 #certifications .cert a {
@@ -1104,6 +1199,13 @@ nav img {
 #certifications .cert .cert-img img {
     width: 100%;
     object-fit: contain;
+}
+
+#certifications .empty-hint {
+    font-family: Gilroy, sans-serif;
+    font-size: 1.3vw;
+    color: var(--gray);
+    text-transform: none;
 }
 
 /* CONTACT */
@@ -1761,6 +1863,33 @@ nav img {
 
     /* CERTIFICATIONS */
 
+    #education {
+        padding: 17vw 6vw;
+    }
+
+    #education h1 {
+        font-size: 17vw;
+        margin-bottom: 0;
+        letter-spacing: -2px;
+    }
+
+    #education .cert {
+        height: auto;
+        margin-top: 18vw;
+        padding: 0;
+        flex-direction: column;
+        gap: 5vw;
+    }
+
+    #education .cert h3 {
+        font-size: 10vw;
+        width: 100%;
+    }
+
+    #education .cert .cert-img {
+        width: 100%;
+    }
+
     #certifications {
         padding: 17vw 6vw;
     }
@@ -2328,6 +2457,32 @@ nav img {
     }
 
     /* CERTIFICATIONS */
+
+    #education {
+        padding: 20vw 6vw;
+    }
+
+    #education h1 {
+        font-size: 17.5vw;
+        margin-bottom: 0;
+    }
+
+    #education .cert {
+        height: auto;
+        margin-top: 20vw;
+        padding: 0;
+        flex-direction: column;
+        gap: 5vw;
+    }
+
+    #education .cert h3 {
+        font-size: 12vw;
+        width: 100%;
+    }
+
+    #education .cert .cert-img {
+        width: 100%;
+    }
 
     #certifications {
         padding: 20vw 6vw;

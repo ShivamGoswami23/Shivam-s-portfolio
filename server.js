@@ -11,6 +11,7 @@ const PDFDocument = require('pdfkit');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const PROJECTS_FILE = path.join(__dirname, 'data', 'projects.json');
+const CERTIFICATES_FILE = path.join(__dirname, 'data', 'certificates.json');
 const MESSAGES_FILE = path.join(__dirname, 'data', 'messages.json');
 const SITE_FILE = path.join(__dirname, 'data', 'site.json');
 const RESUME_DATA_FILE = path.join(__dirname, 'data', 'resume.json');
@@ -86,6 +87,14 @@ function readProjects() {
 
 function writeProjects(projects) {
     fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2));
+}
+
+function readCertificates() {
+    return JSON.parse(fs.readFileSync(CERTIFICATES_FILE, 'utf-8'));
+}
+
+function writeCertificates(certificates) {
+    fs.writeFileSync(CERTIFICATES_FILE, JSON.stringify(certificates, null, 2));
 }
 
 function readMessages() {
@@ -197,6 +206,17 @@ function renderProjectsHtml(projects) {
                 </div>`).join('\n');
 }
 
+function renderCertificatesHtml(certificates) {
+    if (!certificates.length) {
+        return '<p class="empty-hint">No certificates added yet — check back soon.</p>';
+    }
+    return certificates.map((c, i) => `
+                <div class="cert">
+                    <h3 class="scale"><span>(${String(i + 1).padStart(2, '0')})</span><br><a href="${escapeHtml(c.image)}" class="cert-link" target="_blank">${escapeHtml(c.title)}</a><br><span style="font-family: Gilroy, sans-serif; font-size: 1.5vw; text-transform: none; color: var(--gray); display: block; margin-top: 1vw;">${escapeHtml(c.issuer)}</span></h3>
+                    <div class="cert-img scale"><a href="${escapeHtml(c.image)}" class="cert-link" target="_blank"><img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.title)}"></a></div>
+                </div>`).join('\n');
+}
+
 function requireAuth(req, res, next) {
     if (req.session && req.session.isAdmin) return next();
     return res.status(401).json({ error: 'Unauthorized' });
@@ -206,9 +226,11 @@ function requireAuth(req, res, next) {
 app.get('/', (req, res) => {
     let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf-8');
     const projects = readProjects();
+    const certificates = readCertificates();
     const site = readSite();
 
     html = html.replace('<!-- PROJECTS_PLACEHOLDER -->', renderProjectsHtml(projects));
+    html = html.replace('<!-- CERTIFICATES_PLACEHOLDER -->', renderCertificatesHtml(certificates));
     html = html.replaceAll('{{PHOTO_VERSION}}', site.photoVersion);
     html = html.replaceAll('{{RESUME_VERSION}}', site.resumeVersion);
 
@@ -218,6 +240,10 @@ app.get('/', (req, res) => {
 // Public read-only API
 app.get('/api/projects', (req, res) => {
     res.json(readProjects());
+});
+
+app.get('/api/certificates', (req, res) => {
+    res.json(readCertificates());
 });
 
 app.get('/api/site', (req, res) => {
@@ -279,6 +305,46 @@ app.delete('/api/admin/projects/:id', requireAuth, (req, res) => {
 
     const [removed] = projects.splice(idx, 1);
     writeProjects(projects);
+    res.json(removed);
+});
+
+// Admin certificate CRUD
+app.post('/api/admin/certificates', requireAuth, (req, res) => {
+    const { title, issuer, image } = req.body || {};
+    if (!title || !image) return res.status(400).json({ error: 'title and image are required' });
+
+    const certificates = readCertificates();
+    const newCertificate = {
+        id: Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
+        title,
+        issuer: issuer || '',
+        image,
+    };
+    certificates.push(newCertificate);
+    writeCertificates(certificates);
+    res.status(201).json(newCertificate);
+});
+
+app.put('/api/admin/certificates/:id', requireAuth, (req, res) => {
+    const certificates = readCertificates();
+    const idx = certificates.findIndex((c) => c.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Certificate not found' });
+
+    const { title, issuer, image } = req.body || {};
+    if (title !== undefined) certificates[idx].title = title;
+    if (issuer !== undefined) certificates[idx].issuer = issuer;
+    if (image !== undefined) certificates[idx].image = image;
+    writeCertificates(certificates);
+    res.json(certificates[idx]);
+});
+
+app.delete('/api/admin/certificates/:id', requireAuth, (req, res) => {
+    const certificates = readCertificates();
+    const idx = certificates.findIndex((c) => c.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Certificate not found' });
+
+    const [removed] = certificates.splice(idx, 1);
+    writeCertificates(certificates);
     res.json(removed);
 });
 
