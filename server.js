@@ -105,10 +105,17 @@ async function uploadFileToStorage(buffer, storagePath, contentType) {
 // Serves a fixed-name asset (a photo slot, the resume PDF) that may live in
 // Supabase Storage instead of on local disk - redirects to the storage URL
 // when configured, otherwise serves the local file as before.
-async function serveStorageFile(storagePath, localPath, res) {
+//
+// The redirect target is a fixed URL (hero.jpg, resume.pdf, ...) with no
+// cache-busting of its own, so a browser (or Supabase's own CDN) can happily
+// keep serving the old cached image forever after a new upload overwrites
+// it - the version number is appended as a query param specifically to
+// invalidate that cache every time the underlying file actually changes.
+async function serveStorageFile(storagePath, localPath, res, version) {
     if (supabase) {
         const { data } = supabase.storage.from('images').getPublicUrl(storagePath);
-        return res.redirect(data.publicUrl);
+        const url = version ? `${data.publicUrl}?v=${version}` : data.publicUrl;
+        return res.redirect(url);
     }
     res.sendFile(localPath);
 }
@@ -701,10 +708,13 @@ app.post('/api/admin/upload-resume', requireAuth, (req, res) => {
 app.get('/images/:filename', async (req, res, next) => {
     const match = req.params.filename.match(/^shivam-(hero|about|craft)\.jpg$/);
     if (!match) return next();
-    await serveStorageFile(`${match[1]}.jpg`, PHOTO_SLOTS[match[1]], res);
+    const site = await readSite();
+    const version = site[PHOTO_SLOT_VERSION_KEYS[match[1]]];
+    await serveStorageFile(`${match[1]}.jpg`, PHOTO_SLOTS[match[1]], res, version);
 });
 app.get('/Shivam-Goswami-Resume.pdf', async (req, res) => {
-    await serveStorageFile('resume.pdf', RESUME_PATH, res);
+    const site = await readSite();
+    await serveStorageFile('resume.pdf', RESUME_PATH, res, site.resumeVersion);
 });
 app.use('/images', express.static(IMAGES_DIR));
 app.use(express.static(__dirname));
