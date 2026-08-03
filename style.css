@@ -28,6 +28,8 @@
     --gray: #777;
     --graydark: #555;
     --black: #1a1818;
+    --accent: #ff4757;
+    --accent-dark: #d63447;
 }
 
 *::selection {
@@ -247,6 +249,81 @@ nav img {
 
 #landing-page .elem2 h1 {
     font-size: 5vw;
+}
+
+.hero-extra {
+    margin-top: 2vw;
+}
+
+.hero-tagline {
+    font-family: Gilroy, sans-serif;
+    font-size: 1.3vw;
+    color: var(--graydark);
+    max-width: 32vw;
+    line-height: 1.5;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 1vw;
+    margin-top: 1.6vw;
+}
+
+.hero-btn {
+    padding: 0.9vw 2vw;
+    border-radius: 50px;
+    font-family: Gilroy, sans-serif;
+    font-size: 1vw;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.hero-btn-primary {
+    background: var(--accent);
+    color: #fff;
+}
+
+.hero-btn-primary:hover {
+    background: var(--accent-dark);
+}
+
+.hero-btn-outline {
+    border: 1.5px solid var(--black);
+    color: var(--black);
+    background: transparent;
+}
+
+.hero-btn-outline:hover {
+    background: var(--black);
+    color: var(--white);
+}
+
+.hero-socials {
+    display: flex;
+    gap: 0.9vw;
+    margin-top: 1.6vw;
+}
+
+.hero-socials a {
+    width: 2.6vw;
+    height: 2.6vw;
+    border-radius: 50%;
+    border: 1.5px solid var(--gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--black);
+    font-size: 1.3vw;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.hero-socials a:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
 }
 
 .mobile {
@@ -525,8 +602,9 @@ nav img {
 }
 
 .about-actions .talk-btn:hover {
-    background-color: var(--black);
-    color: var(--white);
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
 }
 
 /* PROJECT */
@@ -1600,6 +1678,26 @@ nav img {
         font-size: 7vw;
     }
 
+    .hero-tagline {
+        font-size: 2.6vw;
+        max-width: 85vw;
+    }
+
+    .hero-actions {
+        flex-wrap: wrap;
+    }
+
+    .hero-btn {
+        padding: 1.6vw 3.2vw;
+        font-size: 2vw;
+    }
+
+    .hero-socials a {
+        width: 4.6vw;
+        height: 4.6vw;
+        font-size: 2.2vw;
+    }
+
     .profile-img {
         display: flex;
         align-items: center;
@@ -2230,6 +2328,26 @@ nav img {
     #landing-page .elem2 h1,
     #landing-page .elem3 h1 {
         font-size: 9vw;
+    }
+
+    .hero-tagline {
+        font-size: 4vw;
+        max-width: 90vw;
+    }
+
+    .hero-actions {
+        flex-wrap: wrap;
+    }
+
+    .hero-btn {
+        padding: 2.6vw 5vw;
+        font-size: 3.2vw;
+    }
+
+    .hero-socials a {
+        width: 8vw;
+        height: 8vw;
+        font-size: 3.6vw;
     }
 
     .profile-img {
