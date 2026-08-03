@@ -8,6 +8,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
+const { Redis } = require('@upstash/redis');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,6 +50,35 @@ function seedWritableStorage() {
     }
 }
 seedWritableStorage();
+
+// JSON data (messages/projects/certificates/site/resume) lives in a real,
+// shared store when one's configured - a local/Render file only exists on
+// that one instance/disk, which is exactly why messages saved on Vercel
+// weren't showing up in the admin panel (a different serverless instance,
+// with its own empty /tmp, served that later request). Falls back to the
+// file-based behavior when no KV database is connected.
+const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+const kv = KV_URL && KV_TOKEN ? new Redis({ url: KV_URL, token: KV_TOKEN }) : null;
+
+async function readJsonStore(key, filePath) {
+    if (kv) {
+        const cached = await kv.get(key);
+        if (cached !== null && cached !== undefined) return cached;
+        const seed = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        await kv.set(key, seed);
+        return seed;
+    }
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+}
+
+async function writeJsonStore(key, filePath, data) {
+    if (kv) {
+        await kv.set(key, data);
+        return;
+    }
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
 
 // Three independently-editable homepage photo slots (hero, about, background).
 // Each falls back to a copy of the original portrait until an admin uploads
@@ -165,45 +195,20 @@ app.use(session({
     cookie: { maxAge: 1000 * 60 * 60 * 8 } // 8 hours
 }));
 
-function readProjects() {
-    return JSON.parse(fs.readFileSync(PROJECTS_FILE, 'utf-8'));
-}
+const readProjects = () => readJsonStore('projects', PROJECTS_FILE);
+const writeProjects = (projects) => writeJsonStore('projects', PROJECTS_FILE, projects);
 
-function writeProjects(projects) {
-    fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2));
-}
+const readCertificates = () => readJsonStore('certificates', CERTIFICATES_FILE);
+const writeCertificates = (certificates) => writeJsonStore('certificates', CERTIFICATES_FILE, certificates);
 
-function readCertificates() {
-    return JSON.parse(fs.readFileSync(CERTIFICATES_FILE, 'utf-8'));
-}
+const readMessages = () => readJsonStore('messages', MESSAGES_FILE);
+const writeMessages = (messages) => writeJsonStore('messages', MESSAGES_FILE, messages);
 
-function writeCertificates(certificates) {
-    fs.writeFileSync(CERTIFICATES_FILE, JSON.stringify(certificates, null, 2));
-}
+const readSite = () => readJsonStore('site', SITE_FILE);
+const writeSite = (site) => writeJsonStore('site', SITE_FILE, site);
 
-function readMessages() {
-    return JSON.parse(fs.readFileSync(MESSAGES_FILE, 'utf-8'));
-}
-
-function writeMessages(messages) {
-    fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
-}
-
-function readSite() {
-    return JSON.parse(fs.readFileSync(SITE_FILE, 'utf-8'));
-}
-
-function writeSite(site) {
-    fs.writeFileSync(SITE_FILE, JSON.stringify(site, null, 2));
-}
-
-function readResumeData() {
-    return JSON.parse(fs.readFileSync(RESUME_DATA_FILE, 'utf-8'));
-}
-
-function writeResumeData(data) {
-    fs.writeFileSync(RESUME_DATA_FILE, JSON.stringify(data, null, 2));
-}
+const readResumeData = () => readJsonStore('resumeData', RESUME_DATA_FILE);
+const writeResumeData = (data) => writeJsonStore('resumeData', RESUME_DATA_FILE, data);
 
 function generateResumePdf(data) {
     return new Promise((resolve, reject) => {
@@ -307,11 +312,11 @@ function requireAuth(req, res, next) {
 }
 
 // Public homepage: server-renders the current project list + asset versions into index.html
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
     let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf-8');
-    const projects = readProjects();
-    const certificates = readCertificates();
-    const site = readSite();
+    const projects = await readProjects();
+    const certificates = await readCertificates();
+    const site = await readSite();
 
     html = html.replace('<!-- PROJECTS_PLACEHOLDER -->', renderProjectsHtml(projects));
     html = html.replace('<!-- CERTIFICATES_PLACEHOLDER -->', renderCertificatesHtml(certificates));
@@ -325,16 +330,16 @@ app.get('/', (req, res) => {
 });
 
 // Public read-only API
-app.get('/api/projects', (req, res) => {
-    res.json(readProjects());
+app.get('/api/projects', async (req, res) => {
+    res.json(await readProjects());
 });
 
-app.get('/api/certificates', (req, res) => {
-    res.json(readCertificates());
+app.get('/api/certificates', async (req, res) => {
+    res.json(await readCertificates());
 });
 
-app.get('/api/site', (req, res) => {
-    res.json(readSite());
+app.get('/api/site', async (req, res) => {
+    res.json(await readSite());
 });
 
 // Admin auth
@@ -356,11 +361,11 @@ app.get('/api/admin/session', (req, res) => {
 });
 
 // Admin project CRUD
-app.post('/api/admin/projects', requireAuth, (req, res) => {
+app.post('/api/admin/projects', requireAuth, async (req, res) => {
     const { title, url, image } = req.body || {};
     if (!title || !url) return res.status(400).json({ error: 'title and url are required' });
 
-    const projects = readProjects();
+    const projects = await readProjects();
     const newProject = {
         id: Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
         title,
@@ -368,12 +373,12 @@ app.post('/api/admin/projects', requireAuth, (req, res) => {
         image: image || 'images/plentycart.svg',
     };
     projects.push(newProject);
-    writeProjects(projects);
+    await writeProjects(projects);
     res.status(201).json(newProject);
 });
 
-app.put('/api/admin/projects/:id', requireAuth, (req, res) => {
-    const projects = readProjects();
+app.put('/api/admin/projects/:id', requireAuth, async (req, res) => {
+    const projects = await readProjects();
     const idx = projects.findIndex((p) => p.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Project not found' });
 
@@ -381,26 +386,26 @@ app.put('/api/admin/projects/:id', requireAuth, (req, res) => {
     if (title !== undefined) projects[idx].title = title;
     if (url !== undefined) projects[idx].url = url;
     if (image !== undefined) projects[idx].image = image;
-    writeProjects(projects);
+    await writeProjects(projects);
     res.json(projects[idx]);
 });
 
-app.delete('/api/admin/projects/:id', requireAuth, (req, res) => {
-    const projects = readProjects();
+app.delete('/api/admin/projects/:id', requireAuth, async (req, res) => {
+    const projects = await readProjects();
     const idx = projects.findIndex((p) => p.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Project not found' });
 
     const [removed] = projects.splice(idx, 1);
-    writeProjects(projects);
+    await writeProjects(projects);
     res.json(removed);
 });
 
 // Admin certificate CRUD
-app.post('/api/admin/certificates', requireAuth, (req, res) => {
+app.post('/api/admin/certificates', requireAuth, async (req, res) => {
     const { title, issuer, image } = req.body || {};
     if (!title || !image) return res.status(400).json({ error: 'title and image are required' });
 
-    const certificates = readCertificates();
+    const certificates = await readCertificates();
     const newCertificate = {
         id: Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
         title,
@@ -408,12 +413,12 @@ app.post('/api/admin/certificates', requireAuth, (req, res) => {
         image,
     };
     certificates.push(newCertificate);
-    writeCertificates(certificates);
+    await writeCertificates(certificates);
     res.status(201).json(newCertificate);
 });
 
-app.put('/api/admin/certificates/:id', requireAuth, (req, res) => {
-    const certificates = readCertificates();
+app.put('/api/admin/certificates/:id', requireAuth, async (req, res) => {
+    const certificates = await readCertificates();
     const idx = certificates.findIndex((c) => c.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Certificate not found' });
 
@@ -421,17 +426,17 @@ app.put('/api/admin/certificates/:id', requireAuth, (req, res) => {
     if (title !== undefined) certificates[idx].title = title;
     if (issuer !== undefined) certificates[idx].issuer = issuer;
     if (image !== undefined) certificates[idx].image = image;
-    writeCertificates(certificates);
+    await writeCertificates(certificates);
     res.json(certificates[idx]);
 });
 
-app.delete('/api/admin/certificates/:id', requireAuth, (req, res) => {
-    const certificates = readCertificates();
+app.delete('/api/admin/certificates/:id', requireAuth, async (req, res) => {
+    const certificates = await readCertificates();
     const idx = certificates.findIndex((c) => c.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Certificate not found' });
 
     const [removed] = certificates.splice(idx, 1);
-    writeCertificates(certificates);
+    await writeCertificates(certificates);
     res.json(removed);
 });
 
@@ -442,7 +447,7 @@ app.post('/api/contact', async (req, res) => {
         return res.status(400).json({ error: 'name, email, and message are required' });
     }
 
-    const messages = readMessages();
+    const messages = await readMessages();
     const newMessage = {
         id: Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
         name,
@@ -451,7 +456,7 @@ app.post('/api/contact', async (req, res) => {
         createdAt: new Date().toISOString(),
     };
     messages.unshift(newMessage);
-    writeMessages(messages);
+    await writeMessages(messages);
 
     if (IS_VERCEL) {
         // Serverless functions can freeze/terminate right after the response
@@ -468,17 +473,17 @@ app.post('/api/contact', async (req, res) => {
 });
 
 // Admin: view/delete contact messages
-app.get('/api/admin/messages', requireAuth, (req, res) => {
-    res.json(readMessages());
+app.get('/api/admin/messages', requireAuth, async (req, res) => {
+    res.json(await readMessages());
 });
 
-app.delete('/api/admin/messages/:id', requireAuth, (req, res) => {
-    const messages = readMessages();
+app.delete('/api/admin/messages/:id', requireAuth, async (req, res) => {
+    const messages = await readMessages();
     const idx = messages.findIndex((m) => m.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Message not found' });
 
     const [removed] = messages.splice(idx, 1);
-    writeMessages(messages);
+    await writeMessages(messages);
     res.json(removed);
 });
 
@@ -531,15 +536,15 @@ app.post('/api/admin/upload-photo/:slot', requireAuth, (req, res) => {
         }
 
         const versionKey = PHOTO_SLOT_VERSION_KEYS[req.params.slot];
-        const site = readSite();
+        const site = await readSite();
         site[versionKey] = (site[versionKey] || 1) + 1;
-        writeSite(site);
+        await writeSite(site);
 
         res.json({ ok: true, version: site[versionKey] });
     });
 });
 
-app.delete('/api/admin/upload-photo/:slot', requireAuth, (req, res) => {
+app.delete('/api/admin/upload-photo/:slot', requireAuth, async (req, res) => {
     const slotPath = PHOTO_SLOTS[req.params.slot];
     if (!slotPath) return res.status(400).json({ error: 'Unknown photo slot' });
     if (!fs.existsSync(PORTRAIT_PATH)) return res.status(500).json({ error: 'Default photo missing' });
@@ -547,16 +552,16 @@ app.delete('/api/admin/upload-photo/:slot', requireAuth, (req, res) => {
     fs.copyFileSync(PORTRAIT_PATH, slotPath);
 
     const versionKey = PHOTO_SLOT_VERSION_KEYS[req.params.slot];
-    const site = readSite();
+    const site = await readSite();
     site[versionKey] = (site[versionKey] || 1) + 1;
-    writeSite(site);
+    await writeSite(site);
 
     res.json({ ok: true, version: site[versionKey] });
 });
 
 // Admin: structured resume content editor (auto-generates the PDF on save)
-app.get('/api/admin/resume-data', requireAuth, (req, res) => {
-    res.json(readResumeData());
+app.get('/api/admin/resume-data', requireAuth, async (req, res) => {
+    res.json(await readResumeData());
 });
 
 app.put('/api/admin/resume-data', requireAuth, async (req, res) => {
@@ -566,11 +571,11 @@ app.put('/api/admin/resume-data', requireAuth, async (req, res) => {
     try {
         const pdfBuffer = await generateResumePdf(data);
         fs.writeFileSync(RESUME_PATH, pdfBuffer);
-        writeResumeData(data);
+        await writeResumeData(data);
 
-        const site = readSite();
+        const site = await readSite();
         site.resumeVersion = (site.resumeVersion || 1) + 1;
-        writeSite(site);
+        await writeSite(site);
 
         res.json({ ok: true, resumeVersion: site.resumeVersion });
     } catch (err) {
@@ -581,7 +586,7 @@ app.put('/api/admin/resume-data', requireAuth, async (req, res) => {
 
 // Admin: replace the resume PDF everywhere
 app.post('/api/admin/upload-resume', requireAuth, (req, res) => {
-    uploadMemory.single('resume')(req, res, (err) => {
+    uploadMemory.single('resume')(req, res, async (err) => {
         if (err) return res.status(400).json({ error: err.message });
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
         if (req.file.mimetype !== 'application/pdf') {
@@ -590,9 +595,9 @@ app.post('/api/admin/upload-resume', requireAuth, (req, res) => {
 
         fs.writeFileSync(RESUME_PATH, req.file.buffer);
 
-        const site = readSite();
+        const site = await readSite();
         site.resumeVersion = (site.resumeVersion || 1) + 1;
-        writeSite(site);
+        await writeSite(site);
 
         res.json({ ok: true, resumeVersion: site.resumeVersion });
     });

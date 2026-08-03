@@ -13,6 +13,7 @@
     "serve": "^14.2.1"
   },
   "dependencies": {
+    "@upstash/redis": "^1.38.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
