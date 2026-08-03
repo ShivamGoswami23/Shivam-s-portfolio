@@ -11,14 +11,44 @@ const PDFDocument = require('pdfkit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const PROJECTS_FILE = path.join(__dirname, 'data', 'projects.json');
-const CERTIFICATES_FILE = path.join(__dirname, 'data', 'certificates.json');
-const MESSAGES_FILE = path.join(__dirname, 'data', 'messages.json');
-const SITE_FILE = path.join(__dirname, 'data', 'site.json');
-const RESUME_DATA_FILE = path.join(__dirname, 'data', 'resume.json');
-const IMAGES_DIR = path.join(__dirname, 'images');
+
+// On Vercel the deployed bundle itself is read-only - only /tmp is writable,
+// and it's wiped on every cold start (not shared across instances either).
+// Everywhere else (Render, local), the app's own directory is writable and
+// actually persists. Seed /tmp from the committed files on first write so
+// reads/writes at least succeed instead of throwing EROFS.
+const IS_VERCEL = !!process.env.VERCEL;
+const WRITABLE_ROOT = IS_VERCEL ? '/tmp' : __dirname;
+const BUNDLE_DATA_DIR = path.join(__dirname, 'data');
+const BUNDLE_IMAGES_DIR = path.join(__dirname, 'images');
+const BUNDLE_RESUME_PATH = path.join(__dirname, 'Shivam-Goswami-Resume.pdf');
+
+const PROJECTS_FILE = path.join(WRITABLE_ROOT, 'data', 'projects.json');
+const CERTIFICATES_FILE = path.join(WRITABLE_ROOT, 'data', 'certificates.json');
+const MESSAGES_FILE = path.join(WRITABLE_ROOT, 'data', 'messages.json');
+const SITE_FILE = path.join(WRITABLE_ROOT, 'data', 'site.json');
+const RESUME_DATA_FILE = path.join(WRITABLE_ROOT, 'data', 'resume.json');
+const IMAGES_DIR = path.join(WRITABLE_ROOT, 'images');
 const PORTRAIT_PATH = path.join(IMAGES_DIR, 'shivam-portrait.jpg');
-const RESUME_PATH = path.join(__dirname, 'Shivam-Goswami-Resume.pdf');
+const RESUME_PATH = path.join(WRITABLE_ROOT, 'Shivam-Goswami-Resume.pdf');
+
+function seedWritableStorage() {
+    if (!IS_VERCEL) return;
+    fs.mkdirSync(path.join(WRITABLE_ROOT, 'data'), { recursive: true });
+    fs.mkdirSync(IMAGES_DIR, { recursive: true });
+    for (const file of fs.readdirSync(BUNDLE_DATA_DIR)) {
+        const dest = path.join(WRITABLE_ROOT, 'data', file);
+        if (!fs.existsSync(dest)) fs.copyFileSync(path.join(BUNDLE_DATA_DIR, file), dest);
+    }
+    for (const file of fs.readdirSync(BUNDLE_IMAGES_DIR)) {
+        const dest = path.join(IMAGES_DIR, file);
+        if (!fs.existsSync(dest)) fs.copyFileSync(path.join(BUNDLE_IMAGES_DIR, file), dest);
+    }
+    if (!fs.existsSync(RESUME_PATH) && fs.existsSync(BUNDLE_RESUME_PATH)) {
+        fs.copyFileSync(BUNDLE_RESUME_PATH, RESUME_PATH);
+    }
+}
+seedWritableStorage();
 
 // Three independently-editable homepage photo slots (hero, about, background).
 // Each falls back to a copy of the original portrait until an admin uploads
@@ -554,11 +584,19 @@ app.post('/api/admin/upload-resume', requireAuth, (req, res) => {
     });
 });
 
+// Serve the writable copies of images/resume first (so admin uploads show up
+// instead of the original read-only bundle copies), then everything else.
+app.use('/images', express.static(IMAGES_DIR));
+app.use('/Shivam-Goswami-Resume.pdf', (req, res) => res.sendFile(RESUME_PATH));
 app.use(express.static(__dirname));
 
 ensurePhotoSlotsExist();
 
-app.listen(PORT, () => {
-    console.log(`Portfolio running at http://localhost:${PORT}`);
-    console.log(`Admin panel at    http://localhost:${PORT}/admin`);
-});
+if (!IS_VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`Portfolio running at http://localhost:${PORT}`);
+        console.log(`Admin panel at    http://localhost:${PORT}/admin`);
+    });
+}
+
+module.exports = app;
