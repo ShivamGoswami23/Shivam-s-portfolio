@@ -1435,6 +1435,7 @@ nav img {
 #contact {
     padding: 4vw 6vw;
     padding-top: 5vw;
+    padding-bottom: 7vw;
     width: 100vw;
     position: relative;
     background-color: var(--white);

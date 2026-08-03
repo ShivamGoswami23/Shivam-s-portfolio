@@ -17,6 +17,7 @@ const loco = () => {
             breakpoint: 1024
         }
     });
+    window.locoScroll = locoScroll;
     locoScroll.on("scroll", ScrollTrigger.update);
 
     ScrollTrigger.scrollerProxy("#main", {
@@ -313,7 +314,11 @@ certHover();
 
 const toTop = () => {
     document.querySelector(".back-top").addEventListener("click", () => {
-        location.reload();
+        if (window.locoScroll) {
+            window.locoScroll.scrollTo(0);
+        } else {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
     })
     const logo = document.querySelectorAll("nav img");
     logo.forEach(logo => {
