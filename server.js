@@ -19,6 +19,23 @@ const IMAGES_DIR = path.join(__dirname, 'images');
 const PORTRAIT_PATH = path.join(IMAGES_DIR, 'shivam-portrait.jpg');
 const RESUME_PATH = path.join(__dirname, 'Shivam-Goswami-Resume.pdf');
 
+// Three independently-editable homepage photo slots (hero, about, background).
+// Each falls back to a copy of the original portrait until an admin uploads
+// its own image, and "delete" resets it back to that same default.
+const PHOTO_SLOTS = {
+    hero: path.join(IMAGES_DIR, 'shivam-hero.jpg'),
+    about: path.join(IMAGES_DIR, 'shivam-about.jpg'),
+    craft: path.join(IMAGES_DIR, 'shivam-craft.jpg'),
+};
+
+function ensurePhotoSlotsExist() {
+    for (const slotPath of Object.values(PHOTO_SLOTS)) {
+        if (!fs.existsSync(slotPath) && fs.existsSync(PORTRAIT_PATH)) {
+            fs.copyFileSync(PORTRAIT_PATH, slotPath);
+        }
+    }
+}
+
 const upload = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => cb(null, IMAGES_DIR),
@@ -247,6 +264,9 @@ app.get('/', (req, res) => {
     html = html.replace('<!-- CERTIFICATES_PLACEHOLDER -->', renderCertificatesHtml(certificates));
     html = html.replaceAll('{{PHOTO_VERSION}}', site.photoVersion);
     html = html.replaceAll('{{RESUME_VERSION}}', site.resumeVersion);
+    html = html.replaceAll('{{HERO_PHOTO_VERSION}}', site.heroPhotoVersion || 1);
+    html = html.replaceAll('{{ABOUT_PHOTO_VERSION}}', site.aboutPhotoVersion || 1);
+    html = html.replaceAll('{{CRAFT_PHOTO_VERSION}}', site.craftPhotoVersion || 1);
 
     res.send(html);
 });
@@ -380,11 +400,9 @@ app.post('/api/contact', async (req, res) => {
     messages.unshift(newMessage);
     writeMessages(messages);
 
-    // Awaited so the request stays open (keeping the server active) until the
-    // email attempt finishes - on Render's free tier, a fire-and-forget send
-    // could get silently cut off if the server idles down right after the
-    // response is sent, especially right after a cold start.
-    await sendContactNotification(newMessage);
+    // Not awaited - the visitor's form submission responds immediately;
+    // the email attempt (with its own retries) keeps running in the background.
+    sendContactNotification(newMessage);
 
     res.status(201).json({ ok: true });
 });
@@ -413,8 +431,17 @@ app.post('/api/admin/upload', requireAuth, (req, res) => {
     });
 });
 
-// Admin: replace the site's own profile/hero photo everywhere
-app.post('/api/admin/upload-photo', requireAuth, (req, res) => {
+// Admin: upload/delete one of the three homepage photo slots (hero/about/craft)
+const PHOTO_SLOT_VERSION_KEYS = {
+    hero: 'heroPhotoVersion',
+    about: 'aboutPhotoVersion',
+    craft: 'craftPhotoVersion',
+};
+
+app.post('/api/admin/upload-photo/:slot', requireAuth, (req, res) => {
+    const slotPath = PHOTO_SLOTS[req.params.slot];
+    if (!slotPath) return res.status(400).json({ error: 'Unknown photo slot' });
+
     uploadMemory.single('photo')(req, res, (err) => {
         if (err) return res.status(400).json({ error: err.message });
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -422,14 +449,30 @@ app.post('/api/admin/upload-photo', requireAuth, (req, res) => {
             return res.status(400).json({ error: 'Please upload a JPG, PNG, or WEBP image' });
         }
 
-        fs.writeFileSync(PORTRAIT_PATH, req.file.buffer);
+        fs.writeFileSync(slotPath, req.file.buffer);
 
+        const versionKey = PHOTO_SLOT_VERSION_KEYS[req.params.slot];
         const site = readSite();
-        site.photoVersion = (site.photoVersion || 1) + 1;
+        site[versionKey] = (site[versionKey] || 1) + 1;
         writeSite(site);
 
-        res.json({ ok: true, photoVersion: site.photoVersion });
+        res.json({ ok: true, version: site[versionKey] });
     });
+});
+
+app.delete('/api/admin/upload-photo/:slot', requireAuth, (req, res) => {
+    const slotPath = PHOTO_SLOTS[req.params.slot];
+    if (!slotPath) return res.status(400).json({ error: 'Unknown photo slot' });
+    if (!fs.existsSync(PORTRAIT_PATH)) return res.status(500).json({ error: 'Default photo missing' });
+
+    fs.copyFileSync(PORTRAIT_PATH, slotPath);
+
+    const versionKey = PHOTO_SLOT_VERSION_KEYS[req.params.slot];
+    const site = readSite();
+    site[versionKey] = (site[versionKey] || 1) + 1;
+    writeSite(site);
+
+    res.json({ ok: true, version: site[versionKey] });
 });
 
 // Admin: structured resume content editor (auto-generates the PDF on save)
@@ -477,6 +520,8 @@ app.post('/api/admin/upload-resume', requireAuth, (req, res) => {
 });
 
 app.use(express.static(__dirname));
+
+ensurePhotoSlotsExist();
 
 app.listen(PORT, () => {
     console.log(`Portfolio running at http://localhost:${PORT}`);

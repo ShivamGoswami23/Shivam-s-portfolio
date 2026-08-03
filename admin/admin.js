@@ -43,38 +43,68 @@ function showAdmin() {
     loadResumeData();
 }
 
+const PHOTO_SLOT_FILES = { hero: 'shivam-hero.jpg', about: 'shivam-about.jpg', craft: 'shivam-craft.jpg' };
+const PHOTO_SLOT_VERSION_KEYS = { hero: 'heroPhotoVersion', about: 'aboutPhotoVersion', craft: 'craftPhotoVersion' };
+
 async function loadSiteAssets() {
     const res = await fetch('/api/site');
     const site = await res.json();
-    document.getElementById('current-photo').src = `/images/shivam-portrait.jpg?v=${site.photoVersion}`;
+    for (const slot of Object.keys(PHOTO_SLOT_FILES)) {
+        const version = site[PHOTO_SLOT_VERSION_KEYS[slot]] || 1;
+        document.getElementById(`current-photo-${slot}`).src = `/images/${PHOTO_SLOT_FILES[slot]}?v=${version}`;
+    }
     document.getElementById('current-resume').href = `/Shivam-Goswami-Resume.pdf?v=${site.resumeVersion}`;
 }
 
-document.getElementById('photo-file').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+document.querySelectorAll('.photo-slot-file').forEach((input) => {
+    input.addEventListener('change', async (e) => {
+        const slot = input.dataset.slot;
+        const file = e.target.files[0];
+        if (!file) return;
 
-    const status = document.getElementById('photo-status');
-    const reminder = document.getElementById('photo-linkedin-reminder');
-    reminder.style.display = 'none';
-    status.textContent = 'Uploading...';
+        const status = document.getElementById(`photo-status-${slot}`);
+        const reminder = document.getElementById('photo-linkedin-reminder');
+        reminder.style.display = 'none';
+        status.textContent = 'Uploading...';
 
-    const formData = new FormData();
-    formData.append('photo', file);
+        const formData = new FormData();
+        formData.append('photo', file);
 
-    try {
-        const res = await fetch('/api/admin/upload-photo', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        try {
+            const res = await fetch(`/api/admin/upload-photo/${slot}`, { method: 'POST', body: formData });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Upload failed');
 
-        status.textContent = 'Uploaded ✓';
-        reminder.style.display = 'block';
-        loadSiteAssets();
-    } catch (err) {
-        status.textContent = err.message;
-    } finally {
-        e.target.value = '';
-    }
+            status.textContent = 'Uploaded ✓';
+            if (slot === 'hero') reminder.style.display = 'block';
+            loadSiteAssets();
+        } catch (err) {
+            status.textContent = err.message;
+        } finally {
+            e.target.value = '';
+        }
+    });
+});
+
+document.querySelectorAll('.photo-slot-delete').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+        const slot = btn.dataset.slot;
+        if (!confirm('Reset this photo back to the default?')) return;
+
+        const status = document.getElementById(`photo-status-${slot}`);
+        status.textContent = 'Resetting...';
+
+        try {
+            const res = await fetch(`/api/admin/upload-photo/${slot}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Reset failed');
+
+            status.textContent = 'Reset ✓';
+            loadSiteAssets();
+        } catch (err) {
+            status.textContent = err.message;
+        }
+    });
 });
 
 document.getElementById('resume-file').addEventListener('change', async (e) => {

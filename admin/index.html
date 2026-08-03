@@ -32,7 +32,7 @@
 
         <div class="admin-body">
             <nav class="admin-sidebar">
-                <button class="sidebar-tab active" data-tab="photo">Profile Photo</button>
+                <button class="sidebar-tab active" data-tab="photo">Photos</button>
                 <button class="sidebar-tab" data-tab="resume">Resume</button>
                 <button class="sidebar-tab" data-tab="projects">Projects</button>
                 <button class="sidebar-tab" data-tab="certificates">Certificates</button>
@@ -42,21 +42,56 @@
             <main class="admin-main">
             <div class="tab-panel active" id="tab-photo">
             <section class="panel">
-                <h2>Profile Photo</h2>
+                <h2>Hero Photo</h2>
+                <p class="panel-hint">Shown large on the homepage hero, next to your name.</p>
                 <div class="site-asset-row">
-                    <img id="current-photo" class="site-asset-preview" alt="Current profile photo">
+                    <img id="current-photo-hero" class="site-asset-preview" alt="Current hero photo">
                     <div class="site-asset-actions">
                         <label class="upload-btn">
                             Upload New Photo
-                            <input type="file" id="photo-file" accept="image/png,image/jpeg,image/webp" hidden />
+                            <input type="file" class="photo-slot-file" data-slot="hero" accept="image/png,image/jpeg,image/webp" hidden />
                         </label>
-                        <span id="photo-status" class="upload-status"></span>
+                        <button type="button" class="delete-btn photo-slot-delete" data-slot="hero">Reset to Default</button>
+                        <span id="photo-status-hero" class="upload-status"></span>
                     </div>
                 </div>
-                <p id="photo-linkedin-reminder" class="linkedin-reminder">
-                    ✅ Photo updated on the site. Don't forget to update it on LinkedIn manually too — LinkedIn doesn't allow automatic updates.
-                </p>
             </section>
+
+            <section class="panel">
+                <h2>About Photo</h2>
+                <p class="panel-hint">Shown in the About section, next to your bio.</p>
+                <div class="site-asset-row">
+                    <img id="current-photo-about" class="site-asset-preview" alt="Current about photo">
+                    <div class="site-asset-actions">
+                        <label class="upload-btn">
+                            Upload New Photo
+                            <input type="file" class="photo-slot-file" data-slot="about" accept="image/png,image/jpeg,image/webp" hidden />
+                        </label>
+                        <button type="button" class="delete-btn photo-slot-delete" data-slot="about">Reset to Default</button>
+                        <span id="photo-status-about" class="upload-status"></span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Background Photo</h2>
+                <p class="panel-hint">Used as the faint scrolling text background further down the page.</p>
+                <div class="site-asset-row">
+                    <img id="current-photo-craft" class="site-asset-preview" alt="Current background photo">
+                    <div class="site-asset-actions">
+                        <label class="upload-btn">
+                            Upload New Photo
+                            <input type="file" class="photo-slot-file" data-slot="craft" accept="image/png,image/jpeg,image/webp" hidden />
+                        </label>
+                        <button type="button" class="delete-btn photo-slot-delete" data-slot="craft">Reset to Default</button>
+                        <span id="photo-status-craft" class="upload-status"></span>
+                    </div>
+                </div>
+            </section>
+
+            <p id="photo-linkedin-reminder" class="linkedin-reminder" style="display:none;">
+                ✅ Photo updated on the site. Don't forget to update it on LinkedIn manually too — LinkedIn doesn't allow automatic updates.
+            </p>
             </div>
 
             <div class="tab-panel" id="tab-resume">
