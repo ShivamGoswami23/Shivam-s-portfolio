@@ -1230,6 +1230,7 @@ nav img {
     padding: 3vw 6vw;
     padding-top: 5vw;
     padding-bottom: 10vw;
+    overflow-x: hidden;
 }
 
 #education h1 {
@@ -1277,6 +1278,8 @@ nav img {
     line-height: 1;
     text-transform: uppercase;
     width: 50%;
+    min-width: 0;
+    overflow-wrap: break-word;
     line-height: 1.25;
     position: relative;
     color: var(--black);
@@ -1306,6 +1309,7 @@ nav img {
     position: relative;
     height: 100%;
     width: 40%;
+    flex-shrink: 0;
     overflow: hidden;
     display: grid;
     place-items: center;
@@ -1314,6 +1318,7 @@ nav img {
 
 #education .cert .cert-img img {
     width: 100%;
+    max-width: 100%;
     object-fit: contain;
 }
 
@@ -1325,6 +1330,7 @@ nav img {
     padding-top: 5vw;
     padding-bottom: 10vw;
     border-top: 1.5px solid var(--black);
+    overflow-x: hidden;
 }
 
 #certifications h1 {
@@ -1373,6 +1379,8 @@ nav img {
     line-height: 1;
     text-transform: uppercase;
     width: 50%;
+    min-width: 0;
+    overflow-wrap: break-word;
     line-height: 1.25;
     position: relative;
     color: var(--black);
@@ -1402,6 +1410,7 @@ nav img {
     position: relative;
     height: 100%;
     width: 40%;
+    flex-shrink: 0;
     overflow: hidden;
     display: grid;
     place-items: center;
@@ -1410,6 +1419,7 @@ nav img {
 
 #certifications .cert .cert-img img {
     width: 100%;
+    max-width: 100%;
     object-fit: contain;
 }
 
