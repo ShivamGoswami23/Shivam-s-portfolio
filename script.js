@@ -143,16 +143,6 @@ const landingPageAnim = () => {
             opacity: 0,
             ease: Power2
         })
-        .to("#landing-page", {
-            backgroundColor: "#1a1818",
-            ease: Power3,
-            scrollTrigger: {
-                trigger: "#landing-page .boundingelem",
-                scroller: "#main",
-                start: "top 30%",
-                scrub: 1
-            }
-        })
 }
 landingPageAnim();
 
