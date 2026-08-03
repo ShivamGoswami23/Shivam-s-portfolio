@@ -142,8 +142,9 @@ const landingPageAnim = () => {
         }, "a")
         .from(".profile-img", {
             opacity: 0,
+            duration: 1,
             ease: Power2
-        })
+        }, "a")
 }
 landingPageAnim();
 
