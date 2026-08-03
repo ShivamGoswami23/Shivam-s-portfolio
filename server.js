@@ -52,9 +52,9 @@ if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
             user: process.env.GMAIL_USER,
             pass: process.env.GMAIL_APP_PASSWORD,
         },
-        connectionTimeout: 20000,
-        greetingTimeout: 20000,
-        socketTimeout: 20000,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
     });
 }
 
@@ -380,7 +380,11 @@ app.post('/api/contact', async (req, res) => {
     messages.unshift(newMessage);
     writeMessages(messages);
 
-    sendContactNotification(newMessage);
+    // Awaited so the request stays open (keeping the server active) until the
+    // email attempt finishes - on Render's free tier, a fire-and-forget send
+    // could get silently cut off if the server idles down right after the
+    // response is sent, especially right after a cold start.
+    await sendContactNotification(newMessage);
 
     res.status(201).json({ ok: true });
 });
