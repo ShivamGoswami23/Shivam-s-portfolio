@@ -1,0 +1,45 @@
+{
+  "name": "Shivam Goswami",
+  "title": ".NET Developer",
+  "phone": "+918401815151",
+  "email": "Shivamgoswsmi15151@gmal.com",
+  "summary": "I am a motivated, result-driven, passionate and curious learner. I am eager to start my journey in software development. I continuously strive to grow my skills and stay updated with the latest technologies. I'm committed to contributing to innovative solutions that support team success and help me evolve into a valuable member of any project I work on.",
+  "skills": [
+    "HTML",
+    "CSS",
+    "JavaScript",
+    "React",
+    "SQL",
+    "SQL Server",
+    ".NET"
+  ],
+  "experience": [
+    {
+      "company": "Mintex Tech",
+      "role": ".Net Developer Intern",
+      "duration": "01/2025 - 07/2025",
+      "description": "Developed a .NET-based college project from scratch and learned to integrate components from older projects into a unified system. Gained practical knowledge of performance tuning and basic security best practices in .NET applications. Used Microsoft Office Word to create detailed documentation of a legacy project integration, covering all technical and functional aspects for better team collaboration.\nTools & Technologies: .NET (C#), ASP.NET Core, SQL Server, Visual Studio 2020, Microsoft Office Word."
+    },
+    {
+      "company": "Mintex Tech",
+      "role": ".NET Developer",
+      "duration": "07/2025 - Present",
+      "description": "Project: PLENTYCART (E-commerce Platform)\nContributed to the development of the PLENTYCART application built with ASP.NET MVC, React.js, Next.js, and SQL Server (SSMS). Implemented UI enhancements and responsive designs to improve user experience. Modified existing modules and resolved bugs to ensure smooth functionality. Assisted in integrating frontend components with backend APIs. Worked with SQL Server for basic database operations, queries, and data updates. Actively learned and applied industry best practices during the development lifecycle. Collaborated with team members in a professional development environment."
+    }
+  ],
+  "education": [
+    {
+      "degree": "Bachelor Of Computer Application",
+      "institution": "Saurashtra University, Parangat College, Halvad",
+      "duration": "2020 - 2023",
+      "score": "74.72%"
+    },
+    {
+      "degree": "Master Of Computer Application",
+      "institution": "Kadi Sarva Vishwavidyalaya, LDRP Institute of Technology & Research",
+      "duration": "2023 - 2025",
+      "score": "72.10%"
+    }
+  ],
+  "extracurricular": "Taekwondo - District level Champion, Silver Medalist"
+}

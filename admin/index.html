@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin | Shivam Goswami</title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="admin.css">
+</head>
+
+<body>
+    <div id="login-screen" class="screen">
+        <form id="login-form" class="login-card">
+            <h1>Admin Login</h1>
+            <input type="text" id="login-username" placeholder="Username" autocomplete="username" required />
+            <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required />
+            <button type="submit">Log In</button>
+            <p id="login-error" class="error"></p>
+        </form>
+    </div>
+
+    <div id="admin-screen" class="screen" style="display:none;">
+        <header class="admin-header">
+            <h1>Portfolio Admin</h1>
+            <div class="admin-header-right">
+                <a href="/" target="_blank">View Site</a>
+                <button id="logout-btn">Log Out</button>
+            </div>
+        </header>
+
+        <main class="admin-main">
+            <section class="panel">
+                <h2>Profile Photo</h2>
+                <div class="site-asset-row">
+                    <img id="current-photo" class="site-asset-preview" alt="Current profile photo">
+                    <div class="site-asset-actions">
+                        <label class="upload-btn">
+                            Upload New Photo
+                            <input type="file" id="photo-file" accept="image/png,image/jpeg,image/webp" hidden />
+                        </label>
+                        <span id="photo-status" class="upload-status"></span>
+                    </div>
+                </div>
+                <p id="photo-linkedin-reminder" class="linkedin-reminder">
+                    ✅ Photo updated on the site. Don't forget to update it on LinkedIn manually too — LinkedIn doesn't allow automatic updates.
+                </p>
+            </section>
+
+            <section class="panel">
+                <h2>Resume Editor</h2>
+                <p class="panel-hint"><a id="current-resume" href="#" target="_blank">View current resume PDF</a></p>
+
+                <form id="resume-form" class="resume-form">
+                    <label>Full Name
+                        <input type="text" id="resume-name" required />
+                    </label>
+                    <label>Title
+                        <input type="text" id="resume-title" placeholder="e.g. .NET Developer" />
+                    </label>
+                    <div class="resume-two-col">
+                        <label>Phone
+                            <input type="text" id="resume-phone" />
+                        </label>
+                        <label>Email
+                            <input type="text" id="resume-email" />
+                        </label>
+                    </div>
+                    <label>Summary
+                        <textarea id="resume-summary" rows="4"></textarea>
+                    </label>
+                    <label>Skills (comma-separated)
+                        <input type="text" id="resume-skills" placeholder="HTML, CSS, JavaScript, .NET" />
+                    </label>
+
+                    <div class="resume-subsection">
+                        <div class="resume-subsection-header">
+                            <h3>Professional Experience</h3>
+                            <button type="button" id="add-experience-btn" class="small-btn">+ Add Experience</button>
+                        </div>
+                        <div id="experience-rows"></div>
+                    </div>
+
+                    <div class="resume-subsection">
+                        <div class="resume-subsection-header">
+                            <h3>Education</h3>
+                            <button type="button" id="add-education-btn" class="small-btn">+ Add Education</button>
+                        </div>
+                        <div id="education-rows"></div>
+                    </div>
+
+                    <label>Extracurricular Activities
+                        <input type="text" id="resume-extracurricular" />
+                    </label>
+
+                    <div class="form-actions">
+                        <button type="submit" id="resume-save-btn">Save &amp; Generate PDF</button>
+                        <span id="resume-status" class="upload-status"></span>
+                    </div>
+                    <p id="resume-form-error" class="error"></p>
+                </form>
+
+                <p class="panel-hint">Prefer to upload a ready-made PDF instead?
+                    <label class="upload-btn inline-upload-btn">
+                        Upload PDF
+                        <input type="file" id="resume-file" accept="application/pdf" hidden />
+                    </label>
+                </p>
+
+                <p id="resume-linkedin-reminder" class="linkedin-reminder">
+                    ✅ Resume updated on the site. Don't forget to update it on LinkedIn's "Featured" section manually too — LinkedIn doesn't allow automatic updates.
+                </p>
+            </section>
+
+            <section class="panel">
+                <h2>Projects</h2>
+                <div id="projects-list" class="projects-list"></div>
+            </section>
+
+            <section class="panel">
+                <h2 id="form-title">Add New Project</h2>
+                <form id="project-form" class="project-form">
+                    <input type="hidden" id="project-id" />
+                    <label>Title
+                        <input type="text" id="project-title" placeholder="e.g. Mintex Care" required />
+                    </label>
+                    <label>Live URL
+                        <input type="url" id="project-url" placeholder="https://example.com/" required />
+                    </label>
+                    <label>Image
+                        <div class="image-field">
+                            <img id="image-preview" class="image-preview" style="display:none;" alt="">
+                            <input type="text" id="project-image" placeholder="images/example.png" required />
+                            <label class="upload-btn">
+                                Upload Image
+                                <input type="file" id="project-image-file" accept="image/*" hidden />
+                            </label>
+                        </div>
+                        <span id="upload-status" class="upload-status"></span>
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" id="save-btn">Add Project</button>
+                        <button type="button" id="cancel-edit-btn" style="display:none;">Cancel</button>
+                    </div>
+                    <p id="form-error" class="error"></p>
+                </form>
+            </section>
+
+            <section class="panel">
+                <h2>Messages</h2>
+                <div id="messages-list" class="messages-list"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+
+</html>

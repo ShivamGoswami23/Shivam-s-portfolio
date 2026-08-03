@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#101010"/>
+  <rect x="20" y="20" width="760" height="560" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.35"/>
+  <text x="400" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="54" font-weight="700" fill="#ffffff" letter-spacing="2">PLENTYCART</text>
+  <text x="400" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" letter-spacing="3" fill="#9a9a9a">E-COMMERCE PLATFORM</text>
+  <text x="400" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" letter-spacing="2" fill="#6f6f6f">ASP.NET MVC · REACT.JS · SQL SERVER</text>
+</svg>

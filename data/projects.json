@@ -1,0 +1,20 @@
+[
+  {
+    "id": "p1mintexcare",
+    "title": "Mintex Care",
+    "url": "https://mintexcare.com/",
+    "image": "images/mintexcare.png"
+  },
+  {
+    "id": "p2mintexstaffing",
+    "title": "Mintex Staffing",
+    "url": "https://www.mintexstaffing.com/",
+    "image": "images/mintexstaffing.png"
+  },
+  {
+    "id": "p3plentycart",
+    "title": "PLENTYCART (E-commerce)",
+    "url": "https://www.mintextech.com/",
+    "image": "images/plentycart.svg"
+  }
+]
