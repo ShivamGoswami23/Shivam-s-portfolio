@@ -102,6 +102,17 @@ async function uploadFileToStorage(buffer, storagePath, contentType) {
     return `images/${storagePath}`;
 }
 
+// Serves a fixed-name asset (a photo slot, the resume PDF) that may live in
+// Supabase Storage instead of on local disk - redirects to the storage URL
+// when configured, otherwise serves the local file as before.
+async function serveStorageFile(storagePath, localPath, res) {
+    if (supabase) {
+        const { data } = supabase.storage.from('images').getPublicUrl(storagePath);
+        return res.redirect(data.publicUrl);
+    }
+    res.sendFile(localPath);
+}
+
 // Three independently-editable homepage photo slots (hero, about, background).
 // Each falls back to a copy of the original portrait until an admin uploads
 // its own image, and "delete" resets it back to that same default.
@@ -594,7 +605,11 @@ app.post('/api/admin/upload-photo/:slot', requireAuth, (req, res) => {
 
         try {
             const normalized = await normalizeImageBuffer(req.file.buffer, { forceJpeg: true });
-            fs.writeFileSync(slotPath, normalized);
+            if (supabase) {
+                await uploadFileToStorage(normalized, `${req.params.slot}.jpg`, 'image/jpeg');
+            } else {
+                fs.writeFileSync(slotPath, normalized);
+            }
         } catch (convErr) {
             return res.status(400).json({ error: convErr.message });
         }
@@ -613,7 +628,12 @@ app.delete('/api/admin/upload-photo/:slot', requireAuth, async (req, res) => {
     if (!slotPath) return res.status(400).json({ error: 'Unknown photo slot' });
     if (!fs.existsSync(PORTRAIT_PATH)) return res.status(500).json({ error: 'Default photo missing' });
 
-    fs.copyFileSync(PORTRAIT_PATH, slotPath);
+    if (supabase) {
+        const defaultBuffer = fs.readFileSync(PORTRAIT_PATH);
+        await uploadFileToStorage(defaultBuffer, `${req.params.slot}.jpg`, 'image/jpeg');
+    } else {
+        fs.copyFileSync(PORTRAIT_PATH, slotPath);
+    }
 
     const versionKey = PHOTO_SLOT_VERSION_KEYS[req.params.slot];
     const site = await readSite();
@@ -634,7 +654,11 @@ app.put('/api/admin/resume-data', requireAuth, async (req, res) => {
 
     try {
         const pdfBuffer = await generateResumePdf(data);
-        fs.writeFileSync(RESUME_PATH, pdfBuffer);
+        if (supabase) {
+            await uploadFileToStorage(pdfBuffer, 'resume.pdf', 'application/pdf');
+        } else {
+            fs.writeFileSync(RESUME_PATH, pdfBuffer);
+        }
         await writeResumeData(data);
 
         const site = await readSite();
@@ -657,7 +681,11 @@ app.post('/api/admin/upload-resume', requireAuth, (req, res) => {
             return res.status(400).json({ error: 'Please upload a PDF file' });
         }
 
-        fs.writeFileSync(RESUME_PATH, req.file.buffer);
+        if (supabase) {
+            await uploadFileToStorage(req.file.buffer, 'resume.pdf', 'application/pdf');
+        } else {
+            fs.writeFileSync(RESUME_PATH, req.file.buffer);
+        }
 
         const site = await readSite();
         site.resumeVersion = (site.resumeVersion || 1) + 1;
@@ -667,10 +695,18 @@ app.post('/api/admin/upload-resume', requireAuth, (req, res) => {
     });
 });
 
-// Serve the writable copies of images/resume first (so admin uploads show up
-// instead of the original read-only bundle copies), then everything else.
+// Serve the photo slots/resume from Supabase Storage when configured (so
+// admin uploads actually show up, instead of a different serverless
+// instance's empty /tmp), falling back to local disk otherwise.
+app.get('/images/:filename', async (req, res, next) => {
+    const match = req.params.filename.match(/^shivam-(hero|about|craft)\.jpg$/);
+    if (!match) return next();
+    await serveStorageFile(`${match[1]}.jpg`, PHOTO_SLOTS[match[1]], res);
+});
+app.get('/Shivam-Goswami-Resume.pdf', async (req, res) => {
+    await serveStorageFile('resume.pdf', RESUME_PATH, res);
+});
 app.use('/images', express.static(IMAGES_DIR));
-app.use('/Shivam-Goswami-Resume.pdf', (req, res) => res.sendFile(RESUME_PATH));
 app.use(express.static(__dirname));
 
 ensurePhotoSlotsExist();
