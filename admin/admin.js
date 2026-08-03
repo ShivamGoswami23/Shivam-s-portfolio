@@ -366,15 +366,41 @@ function updateCertImagePreview() {
 
 certImageInput.addEventListener('input', updateCertImagePreview);
 
+if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+async function pdfFileToImageBlob(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+}
+
 certImageFileInput.addEventListener('change', async () => {
     const file = certImageFileInput.files[0];
     if (!file) return;
 
-    certUploadStatus.textContent = 'Uploading...';
-    const formData = new FormData();
-    formData.append('image', file);
+    const isPdf = file.type === 'application/pdf';
+    certUploadStatus.textContent = isPdf ? 'Converting PDF...' : 'Uploading...';
 
     try {
+        let uploadFile = file;
+        if (isPdf) {
+            const blob = await pdfFileToImageBlob(file);
+            uploadFile = new File([blob], 'certificate.png', { type: 'image/png' });
+            certUploadStatus.textContent = 'Uploading...';
+        }
+
+        const formData = new FormData();
+        formData.append('image', uploadFile);
+
         const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Upload failed');
@@ -383,7 +409,7 @@ certImageFileInput.addEventListener('change', async () => {
         updateCertImagePreview();
         certUploadStatus.textContent = 'Uploaded ✓';
     } catch (err) {
-        certUploadStatus.textContent = err.message;
+        certUploadStatus.textContent = isPdf ? 'Could not convert PDF: ' + err.message : err.message;
     } finally {
         certImageFileInput.value = '';
     }

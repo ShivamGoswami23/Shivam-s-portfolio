@@ -7,6 +7,7 @@
     <title>Admin | Shivam Goswami</title>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link rel="stylesheet" href="admin.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 
 <body>
@@ -177,16 +178,17 @@
                     <label>Issuer / Organization
                         <input type="text" id="cert-issuer" placeholder="e.g. Be Practical Tech Solutions" />
                     </label>
-                    <label>Certificate Image
+                    <label>Certificate Image or PDF
                         <div class="image-field">
                             <img id="cert-image-preview" class="image-preview" style="display:none;" alt="">
                             <input type="text" id="cert-image" placeholder="images/example.png" required />
                             <label class="upload-btn">
-                                Upload Image
-                                <input type="file" id="cert-image-file" accept="image/*" hidden />
+                                Upload Image or PDF
+                                <input type="file" id="cert-image-file" accept="image/*,application/pdf" hidden />
                             </label>
                         </div>
                         <span id="cert-upload-status" class="upload-status"></span>
+                        <span class="panel-hint">PDFs are automatically converted to an image (first page) for display.</span>
                     </label>
                     <div class="form-actions">
                         <button type="submit" id="cert-save-btn">Add Certificate</button>
