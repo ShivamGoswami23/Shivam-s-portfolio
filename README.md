@@ -113,18 +113,24 @@ portfolio-design-main/
 
 Deployed on **[Vercel](https://vercel.com)** as a serverless Node function (see `vercel.json`).
 
-This app has a real backend (file storage, sessions, email, PDF generation) that normally expects an always-on host with persistent disk. Vercel's serverless functions don't have that — the bundle itself is read-only, and only `/tmp` is writable, wiped whenever a fresh instance spins up. To make it work anyway, writes are redirected to `/tmp` (seeded from the committed files on cold start). Practically, that means:
-- Admin-uploaded content (projects, certificates, photos, contact messages) is not guaranteed to persist — treat anything added through the admin panel as temporary unless it's also committed into the repo.
-- Admin login sessions can intermittently drop, since sessions aren't shared across serverless instances.
+This app has a real backend (file storage, sessions, email, PDF generation) that normally expects an always-on host with persistent disk. Vercel's serverless functions don't have that — the bundle itself is read-only, and only `/tmp` is writable, wiped whenever a fresh instance spins up. To make this work properly:
+- **Data** (projects, certificates, messages, site settings, resume content) is stored in **Supabase Postgres** (`kv_store` table) instead of local JSON files.
+- **Uploaded files** (photos, certificate/project images, resume PDF) are stored in **Supabase Storage** (`images` bucket) instead of local disk.
+- **Admin auth** uses a signed, expiring cookie instead of server-side sessions, so it doesn't depend on any one serverless instance remembering a login.
 
-Environment variables: same as the `.env` file above, added via the Vercel dashboard (Project → Settings → Environment Variables).
+Without `SUPABASE_URL`/`SUPABASE_SERVICE_KEY` set, everything falls back to local files (fine for local dev, not for Vercel production).
+
+Environment variables: same as the `.env` file above, plus `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`, added via the Vercel dashboard (Project → Settings → Environment Variables).
 
 ---
 
 ## 👤 Author
 
+<img src="images/shivam-linkedin.png" alt="Shivam Goswami" width="200">
+
 **Shivam Goswami** — .NET Developer
 - **GitHub**: [ShivamGoswami23](https://github.com/ShivamGoswami23)
+- **LinkedIn**: [Shivam Goswami](https://www.linkedin.com/in/shivam-goswami-874075274/)
 - Reach out via the contact form on the live site.
 
 ---
