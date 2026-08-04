@@ -821,6 +821,18 @@ nav img {
     text-decoration: none;
 }
 
+.project-private {
+    font-family: Gilroy;
+    font-size: 0.9vw;
+    letter-spacing: 0.05vw;
+    text-transform: uppercase;
+    color: var(--graydark);
+    border: 1px solid var(--border-soft);
+    border-radius: 2vw;
+    padding: 0.4vw 1vw;
+    z-index: 8;
+}
+
 .project h1 {
     font-size: 3vw;
     font-family: Fjalla one;
@@ -2071,6 +2083,11 @@ nav img {
         width: fit-content;
     }
 
+    .project-private {
+        font-size: 1.6vw;
+        padding: 0.8vw 1.6vw;
+    }
+
     .project i {
         font-size: 4.3vw;
     }
@@ -2729,6 +2746,11 @@ nav img {
         font-size: 6vw;
         line-height: 1;
         width: fit-content;
+    }
+
+    .project-private {
+        font-size: 2.2vw;
+        padding: 1vw 2vw;
     }
 
     .project i {

@@ -366,10 +366,11 @@ function renderProjectsHtml(projects) {
                     <div class="project-anim"></div>
                     <div class="${i === 0 ? 'first ' : ''}project">
                         <img class="pro-img" src="${escapeHtml(p.image)}">
-                        <a href="${escapeHtml(p.url)}" target="_blank">
+                        ${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank">
                             <h1>${escapeHtml(p.title)}</h1>
                         </a>
-                        <a href="${escapeHtml(p.url)}" target="_blank"><i class="ri-arrow-right-up-line"></i></a>
+                        <a href="${escapeHtml(p.url)}" target="_blank"><i class="ri-arrow-right-up-line"></i></a>` : `<h1>${escapeHtml(p.title)}</h1>
+                        <span class="project-private">Private</span>`}
                     </div>
                 </div>`).join('\n');
 }
@@ -443,13 +444,13 @@ app.get('/api/admin/session', (req, res) => {
 // Admin project CRUD
 app.post('/api/admin/projects', requireAuth, async (req, res) => {
     const { title, url, image } = req.body || {};
-    if (!title || !url) return res.status(400).json({ error: 'title and url are required' });
+    if (!title) return res.status(400).json({ error: 'title is required' });
 
     const projects = await readProjects();
     const newProject = {
         id: Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
         title,
-        url,
+        url: url || '',
         image: image || 'images/plentycart.svg',
     };
     projects.push(newProject);
