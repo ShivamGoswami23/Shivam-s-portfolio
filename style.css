@@ -3104,3 +3104,204 @@ nav img {
 .cert-modal-close:hover {
     color: #b3b3b3;
 }
+
+/* ===== Animated hover icons (hand-ported from itshover.com, vanilla CSS) ===== */
+.hicon {
+    width: 1em;
+    height: 1em;
+    display: inline-flex;
+    flex-shrink: 0;
+    overflow: visible;
+    vertical-align: -0.125em;
+}
+
+@keyframes hicon-draw {
+    from { stroke-dashoffset: 40; }
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes hicon-draw-60 {
+    from { stroke-dashoffset: 60; }
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes hicon-scalex-in {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+@keyframes hicon-scale-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+}
+
+@keyframes hicon-pulse-opacity {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+@keyframes hicon-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes hicon-spin-reverse {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+}
+
+@keyframes hicon-wiggle-left {
+    0%, 100% { transform: translateX(-1px) rotate(-5deg); }
+    50% { transform: translateX(1px) rotate(5deg); }
+}
+
+@keyframes hicon-wiggle-right {
+    0%, 100% { transform: translateX(1px) rotate(5deg); }
+    50% { transform: translateX(-1px) rotate(-5deg); }
+}
+
+@keyframes hicon-drop {
+    0%, 100% { transform: translateY(0); opacity: 1; }
+    40% { transform: translateY(5px); opacity: 0; }
+    60% { transform: translateY(-5px); opacity: 0; }
+}
+
+@keyframes hicon-needle-wobble {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(35deg); }
+    50% { transform: rotate(-15deg); }
+    75% { transform: rotate(22deg); }
+    100% { transform: rotate(0deg); }
+}
+
+@keyframes hicon-arrow-nudge {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(4px); }
+}
+
+@keyframes hicon-wobble-rotate {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(5deg); }
+    75% { transform: rotate(-5deg); }
+}
+
+/* LinkedIn */
+.hicon-linkedin .li-line { stroke-dasharray: 16; stroke-dashoffset: 0; }
+.hicon-linkedin .li-border { transform-box: fill-box; transform-origin: center; transition: transform 0.3s ease; }
+.hicon-linkedin:hover .li-border { transform: scale(1.05); }
+.hicon-linkedin:hover .li-line { animation: hicon-draw 0.4s ease-out; }
+
+/* Mail */
+.hicon-mail { perspective: 60px; }
+.hicon-mail .mail-flap { transform-origin: 50% 0%; transition: transform 0.4s ease-in-out; }
+.hicon-mail:hover .mail-flap { transform: rotateX(-55deg); }
+
+/* Telephone */
+.hicon-phone .ph-roof, .hicon-phone .ph-pillar { transition: transform 0.25s ease-out; }
+.hicon-phone .ph-center { transform-box: fill-box; transform-origin: center; transition: transform 0.3s ease-in-out; }
+.hicon-phone:hover .ph-roof { transform: translateY(-3px); }
+.hicon-phone:hover .ph-pillar { transform: translateY(-2px); }
+.hicon-phone:hover .ph-center { transform: scale(1.12); }
+
+/* Map pin */
+.hicon-mappin:hover .pin-dot { animation: hicon-pulse-opacity 0.6s ease-in-out infinite; }
+
+/* Code */
+.hicon-code .left-bracket, .hicon-code .right-bracket { transition: transform 0.3s ease; }
+.hicon-code:hover .left-bracket { transform: translateX(-2px); }
+.hicon-code:hover .right-bracket { transform: translateX(2px); }
+
+/* Code XML */
+.hicon-codexml .left-bracket, .hicon-codexml .right-bracket { transition: transform 0.3s ease; }
+.hicon-codexml .slash { transform-box: fill-box; transform-origin: center; transition: transform 0.3s ease, opacity 0.3s ease; }
+.hicon-codexml:hover .left-bracket { transform: translateX(-2px); }
+.hicon-codexml:hover .right-bracket { transform: translateX(2px); }
+.hicon-codexml:hover .slash { transform: scale(1.1); opacity: 0.7; }
+
+/* React */
+.hicon-react .orbit-1, .hicon-react .orbit-2, .hicon-react .orbit-3 { transform-box: fill-box; transform-origin: center; }
+.hicon-react .center-dot { transform-box: fill-box; transform-origin: center; transition: transform 0.3s ease; }
+.hicon-react:hover .orbit-1 { animation: hicon-spin 1.1s linear infinite; }
+.hicon-react:hover .orbit-2 { animation: hicon-spin-reverse 2s linear infinite; }
+.hicon-react:hover .orbit-3 { animation: hicon-spin 3.4s linear infinite; }
+.hicon-react:hover .center-dot { transform: scale(1.3); }
+
+/* Bug */
+.hicon-bug .leg-left, .hicon-bug .leg-right { transform-box: fill-box; transform-origin: center; }
+.hicon-bug:hover .leg-left { animation: hicon-wiggle-left 0.3s ease-in-out infinite; }
+.hicon-bug:hover .leg-right { animation: hicon-wiggle-right 0.3s ease-in-out infinite; }
+
+/* Download */
+.hicon-download .arrow-head, .hicon-download .arrow-stem { transform-box: fill-box; transform-origin: center; }
+.hicon-download .tray { transform-box: fill-box; transform-origin: center bottom; transition: transform 0.3s ease; }
+.hicon-download:hover .arrow-head, .hicon-download:hover .arrow-stem { animation: hicon-drop 1.1s ease-in-out infinite; }
+.hicon-download:hover .tray { transform: scale(1.05); }
+
+/* External link */
+.hicon-extlink .ext-box { transform-box: fill-box; transform-origin: center; transition: transform 0.3s ease; }
+.hicon-extlink .ext-arrow { transform-box: fill-box; transform-origin: center; transition: transform 0.3s ease; }
+.hicon-extlink:hover .ext-box { transform: scale(0.92); }
+.hicon-extlink:hover .ext-arrow { transform: translate(2px, -2px) scale(1.1); }
+
+/* File description */
+.hicon-filedesc .file-fold, .hicon-filedesc .file-lines { stroke-dasharray: 14; stroke-dashoffset: 0; }
+.hicon-filedesc:hover .file-fold { animation: hicon-draw 0.3s ease-out; }
+.hicon-filedesc:hover .file-lines { animation: hicon-draw 0.35s ease-out 0.1s; }
+
+/* Gauge */
+.hicon-gauge .needle { transform-box: fill-box; transform-origin: center; }
+.hicon-gauge:hover .needle { animation: hicon-needle-wobble 0.8s ease-in-out; }
+
+/* Gear */
+.hicon-gear .gear-rotator { transform-box: fill-box; transform-origin: center; }
+.hicon-gear .gear-center { transform-box: fill-box; transform-origin: center; transition: transform 0.3s ease; }
+.hicon-gear:hover .gear-rotator { animation: hicon-spin 0.9s ease-in-out; }
+.hicon-gear:hover .gear-center { transform: scale(1.1); }
+
+/* JavaScript */
+.hicon-js .border { transform-box: fill-box; transform-origin: center; }
+.hicon-js .js-text { stroke-dasharray: 18; stroke-dashoffset: 0; }
+.hicon-js:hover .border { animation: hicon-wobble-rotate 0.5s ease-in-out; }
+.hicon-js:hover .js-text { animation: hicon-draw 0.4s ease-out; }
+
+/* Layout dashboard */
+.hicon-layout .rect-1, .hicon-layout .rect-2, .hicon-layout .rect-3, .hicon-layout .rect-4 {
+    transform-box: fill-box;
+    transition: transform 0.3s ease;
+}
+.hicon-layout:hover .rect-1 { transform: translate(4px, 0); }
+.hicon-layout:hover .rect-2 { transform: translate(-1px, 4px); }
+.hicon-layout:hover .rect-3 { transform: translate(-4px, 0); }
+.hicon-layout:hover .rect-4 { transform: translate(1px, -4px); }
+
+/* Shield check */
+.hicon-shield .shield-body { transform-box: fill-box; transform-origin: center; }
+.hicon-shield .shield-check { stroke-dasharray: 12; stroke-dashoffset: 0; }
+.hicon-shield:hover .shield-body { animation: hicon-scale-pulse 0.35s ease-out; }
+.hicon-shield:hover .shield-check { animation: hicon-draw 0.3s ease-out 0.1s; }
+
+/* Stack */
+.hicon-stack .layer-top, .hicon-stack .layer-bottom {
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.hicon-stack:hover .layer-top { transform: translateY(-2px) scale(1.05); }
+.hicon-stack:hover .layer-bottom { transform: translateY(1px); opacity: 0.7; }
+
+/* Unordered list */
+.hicon-list .list-line-1, .hicon-list .list-line-2, .hicon-list .list-line-3 { transform-box: fill-box; transform-origin: left center; }
+.hicon-list .list-bullets { transform-box: fill-box; transform-origin: center; }
+.hicon-list:hover .list-line-1 { animation: hicon-scalex-in 0.25s ease-out; }
+.hicon-list:hover .list-line-2 { animation: hicon-scalex-in 0.25s ease-out 0.08s; }
+.hicon-list:hover .list-line-3 { animation: hicon-scalex-in 0.25s ease-out 0.16s; }
+.hicon-list:hover .list-bullets { animation: hicon-scale-pulse 0.4s ease-in-out; }
+
+/* Next.js */
+.hicon-nextjs .njs-circle { stroke-dasharray: 60; stroke-dashoffset: 0; }
+.hicon-nextjs .njs-line { stroke-dasharray: 10; stroke-dashoffset: 0; }
+.hicon-nextjs:hover .njs-circle { animation: hicon-draw-60 0.7s ease-out; }
+.hicon-nextjs:hover .njs-line { animation: hicon-draw 0.3s ease-out 0.3s; }
+
+/* Arrow narrow right */
+.hicon-arrowright:hover .arrow-group { animation: hicon-arrow-nudge 0.5s ease-in-out; }

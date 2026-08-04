@@ -369,7 +369,7 @@ function renderProjectsHtml(projects) {
                         ${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank">
                             <h1>${escapeHtml(p.title)}</h1>
                         </a>
-                        <a href="${escapeHtml(p.url)}" target="_blank"><i class="ri-arrow-right-up-line"></i></a>` : `<h1>${escapeHtml(p.title)}</h1>
+                        <a href="${escapeHtml(p.url)}" target="_blank"><svg class="hicon hicon-extlink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="ext-box" d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" /><g class="ext-arrow"><path d="M11 13l9 -9" /><path d="M15 4h5v5" /></g></svg></a>` : `<h1>${escapeHtml(p.title)}</h1>
                         <span class="project-private">Private</span>`}
                     </div>
                 </div>`).join('\n');
