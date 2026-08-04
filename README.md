@@ -1,6 +1,6 @@
 # ⚡ Shivam Goswami — .NET Developer Portfolio
 
-![Shivam Goswami](images/shivam-portrait.jpg)
+![Shivam Goswami](images/shivam-linkedin.png)
 
 A personal portfolio for **Shivam Goswami**, a .NET Developer. The public site is built with HTML5, Vanilla CSS3, JavaScript (ES6+), **GSAP 3**, and **Locomotive Scroll 4** for smooth-scroll animations — plus a small **Node.js / Express** backend that powers a private admin panel for managing the site's content.
 
