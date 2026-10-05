@@ -1268,7 +1268,7 @@ nav img {
 }
 
 #education .cert {
-    height: 45vh;
+    min-height: 45vh;
     width: 100%;
     display: flex;
     align-items: center;
@@ -1368,7 +1368,7 @@ nav img {
 }
 
 #certifications .cert {
-    height: 45vh;
+    min-height: 45vh;
     width: 100%;
     display: flex;
     align-items: center;
@@ -1434,14 +1434,25 @@ nav img {
     width: 40%;
     flex-shrink: 0;
     overflow: hidden;
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: linear 0.2s;
 }
 
+#certifications .cert .cert-img a {
+    display: contents;
+}
+
+/* Fit the whole certificate inside the box - the box height is vh-based and
+   the image width vw-based, so on wide-but-short screens a width:100% image
+   overflowed and got its top/bottom clipped. */
 #certifications .cert .cert-img img {
-    width: 100%;
+    display: block;
+    width: auto;
+    height: auto;
     max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
 }
 
@@ -2201,6 +2212,7 @@ nav img {
 
     #education .cert {
         height: auto;
+        min-height: 0;
         margin-top: 18vw;
         padding: 0;
         flex-direction: column;
@@ -2228,6 +2240,7 @@ nav img {
 
     #certifications .cert {
         height: auto;
+        min-height: 0;
         margin-top: 18vw;
         padding: 0;
         flex-direction: column;
@@ -2865,6 +2878,7 @@ nav img {
 
     #education .cert {
         height: auto;
+        min-height: 0;
         margin-top: 20vw;
         padding: 0;
         flex-direction: column;
@@ -2891,6 +2905,7 @@ nav img {
 
     #certifications .cert {
         height: auto;
+        min-height: 0;
         margin-top: 20vw;
         padding: 0;
         flex-direction: column;
