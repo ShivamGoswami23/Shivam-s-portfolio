@@ -114,8 +114,25 @@ async function uploadFileToStorage(buffer, storagePath, contentType) {
 //
 // `downloadName` forces a "save file" instead of opening it in the browser
 // (Supabase supports this via its own ?download= parameter).
+//
+// When Supabase is first connected its bucket is empty, so the photo slots and
+// resume would 404. The first request for each one copies the bundled default
+// up, so the site keeps working without re-uploading everything.
+const storageSeeded = new Set();
+async function ensureInStorage(storagePath, localPath) {
+    if (storageSeeded.has(storagePath)) return;
+    const { data, error } = await supabase.storage.from('images').list('', { search: storagePath });
+    if (error) throw new Error('Supabase storage list failed: ' + error.message);
+    if (!data.some((f) => f.name === storagePath) && fs.existsSync(localPath)) {
+        const contentType = storagePath.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg';
+        await uploadFileToStorage(fs.readFileSync(localPath), storagePath, contentType);
+    }
+    storageSeeded.add(storagePath);
+}
+
 async function serveStorageFile(storagePath, localPath, res, version, downloadName) {
     if (supabase) {
+        await ensureInStorage(storagePath, localPath);
         const { data } = supabase.storage.from('images').getPublicUrl(storagePath);
         const params = new URLSearchParams();
         if (version) params.set('v', version);
@@ -243,7 +260,9 @@ function renderContactEmailHtml(msg) {
           <tr><td style="${label}">Name</td></tr>
           <tr><td style="${value}font-weight:600;">${name}</td></tr>
           <tr><td style="${label}">Email</td></tr>
-          <tr><td style="${value}"><a href="mailto:${email}" style="color:#111111;">${email}</a></td></tr>
+          <tr><td style="${value}"><a href="mailto:${email}" style="color:#111111;">${email}</a></td></tr>${msg.phone ? `
+          <tr><td style="${label}">Mobile</td></tr>
+          <tr><td style="${value}"><a href="tel:${escapeHtml(msg.phone.replace(/[^0-9+]/g, ''))}" style="color:#111111;">${escapeHtml(msg.phone)}</a></td></tr>` : ''}
           <tr><td style="${label}">Received</td></tr>
           <tr><td style="${value}">${date}</td></tr>
           <tr><td style="${label}">Message</td></tr>
@@ -270,6 +289,7 @@ function renderContactEmailText(msg) {
         '',
         `Name:     ${msg.name}`,
         `Email:    ${msg.email}`,
+        ...(msg.phone ? [`Mobile:   ${msg.phone}`] : []),
         `Received: ${formatMessageDate(msg.createdAt)}`,
         '',
         'Message:',
@@ -833,11 +853,17 @@ app.post('/api/contact', async (req, res) => {
     const name = String(req.body?.name || '').trim();
     const email = String(req.body?.email || '').trim();
     const message = String(req.body?.message || '').trim();
+    const phone = String(req.body?.phone || '').trim().replace(/\s+/g, ' ');
     if (!name || !email || !message) {
         return res.status(400).json({ error: 'name, email, and message are required' });
     }
     if (!EMAIL_RE.test(email)) {
         return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    // Optional; when given it must look like a phone number (7-15 digits).
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phone && (!/^[0-9+()\-\s]+$/.test(phone) || phoneDigits.length < 7 || phoneDigits.length > 15)) {
+        return res.status(400).json({ error: 'Please enter a valid mobile number' });
     }
     if (name.length > 100 || email.length > 200 || message.length > 5000) {
         return res.status(400).json({ error: 'Message is too long' });
@@ -847,6 +873,7 @@ app.post('/api/contact', async (req, res) => {
         id: Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
         name,
         email,
+        ...(phone && { phone }),
         message,
         read: false,
         createdAt: new Date().toISOString(),

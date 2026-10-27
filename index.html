@@ -448,6 +448,11 @@
                             <input name="Email" type="email" id="email" placeholder="Your email" autocomplete="off"
                                 required />
                         </div>
+                        <div class="input-wrapper">
+                            <input name="Phone" type="tel" id="phone" class="input-full" inputmode="tel"
+                                placeholder="Your mobile number (optional)" autocomplete="tel" maxlength="20"
+                                pattern="[0-9+()\-\s]{7,20}" title="Digits only, e.g. +91 98765 43210" />
+                        </div>
                         <textarea name="Message" id="message" rows="8" placeholder="Your message" required
                             autocomplete="off"></textarea>
                         <button type="submit" id="submit-btn">Send Message</button>

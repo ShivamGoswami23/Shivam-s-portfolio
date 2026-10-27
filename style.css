@@ -1591,6 +1591,10 @@ nav img {
     width: 47%;
 }
 
+.cont-wrapper .left form input.input-full {
+    width: 100%;
+}
+
 .cont-wrapper .left form button {
     padding: 1vw 2.5vw;
     border-radius: 100px;

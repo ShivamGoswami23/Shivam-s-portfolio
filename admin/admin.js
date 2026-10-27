@@ -350,7 +350,7 @@ function filteredMessages() {
         if (state.messageFilter === 'unread' && m.read) return false;
         if (state.messageFilter === 'read' && !m.read) return false;
         if (!state.messageQuery) return true;
-        return [m.name, m.email, m.message].some((v) => String(v || '').toLowerCase().includes(state.messageQuery));
+        return [m.name, m.email, m.phone, m.message].some((v) => String(v || '').toLowerCase().includes(state.messageQuery));
     });
 }
 
@@ -393,6 +393,13 @@ function renderMessages() {
     renderMessageDetail();
 }
 
+// wa.me needs the full international number without "+"; a bare 10-digit
+// number is assumed to be Indian (+91).
+function whatsappNumber(phone) {
+    const digits = String(phone).replace(/\D/g, '').replace(/^0+/, '');
+    return digits.length === 10 ? `91${digits}` : digits;
+}
+
 function openMessage(id) {
     state.selectedMessageId = id;
     const m = state.messages.find((x) => x.id === id);
@@ -430,6 +437,15 @@ function renderMessageDetail() {
                 <button class="icon-btn row-icon-btn copy-email" title="Copy email"><i class="ri-file-copy-line"></i></button>
             </div>
         </div>
+        ${m.phone ? `
+        <div>
+            <p class="field-label">Mobile</p>
+            <div class="detail-email">
+                <a href="tel:${escapeAttr(m.phone.replace(/[^0-9+]/g, ''))}">${escapeHtml(m.phone)}</a>
+                <a class="icon-btn row-icon-btn" href="tel:${escapeAttr(m.phone.replace(/[^0-9+]/g, ''))}" title="Call"><i class="ri-phone-line"></i></a>
+                <a class="icon-btn row-icon-btn" href="https://wa.me/${escapeAttr(whatsappNumber(m.phone))}" target="_blank" rel="noopener" title="WhatsApp"><i class="ri-whatsapp-line"></i></a>
+            </div>
+        </div>` : ''}
         <div>
             <p class="field-label">Message</p>
             <div class="detail-body">${escapeHtml(m.message)}</div>
