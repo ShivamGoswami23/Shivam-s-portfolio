@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
     <title>Admin | Shivam Goswami</title>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link rel="stylesheet" href="admin.css">
@@ -11,238 +12,371 @@
 </head>
 
 <body>
-    <div id="login-screen" class="screen">
+    <div id="boot-screen" class="screen boot-screen">
+        <div class="spinner"></div>
+        <p>Loading admin panel…</p>
+    </div>
+
+    <div id="login-screen" class="screen" style="display:none;">
         <form id="login-form" class="login-card">
-            <h1>Admin Login</h1>
+            <div class="login-icon"><i class="ri-shield-keyhole-line"></i></div>
+            <h1>Portfolio Admin</h1>
+            <p class="login-sub">Sign in to manage your portfolio</p>
             <input type="text" id="login-username" placeholder="Username" autocomplete="username" required />
-            <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required />
-            <button type="submit">Log In</button>
+            <div class="password-field">
+                <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required />
+                <button type="button" id="toggle-password" class="icon-btn" aria-label="Show password"><i class="ri-eye-line"></i></button>
+            </div>
             <p id="login-error" class="error"></p>
+            <button type="submit" id="login-btn" class="btn btn-primary btn-block">Sign In</button>
         </form>
     </div>
 
-    <div id="admin-screen" class="screen" style="display:none;">
-        <header class="admin-header">
-            <h1>Portfolio Admin</h1>
-            <div class="admin-header-right">
-                <a href="/" target="_blank">View Site</a>
-                <button id="logout-btn">Log Out</button>
-            </div>
-        </header>
+    <div id="admin-screen" class="app" style="display:none;">
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-        <div class="admin-body">
-            <nav class="admin-sidebar">
-                <button class="sidebar-tab active" data-tab="photo">Photos</button>
-                <button class="sidebar-tab" data-tab="resume">Resume</button>
-                <button class="sidebar-tab" data-tab="projects">Projects</button>
-                <button class="sidebar-tab" data-tab="certificates">Certificates</button>
-                <button class="sidebar-tab" data-tab="messages">Messages</button>
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-name">Shivam<span>.</span></div>
+                <p>Admin Panel</p>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="sidebar-tab active" data-tab="dashboard"><i class="ri-dashboard-line"></i> Dashboard</button>
+                <button class="sidebar-tab" data-tab="messages"><i class="ri-mail-line"></i> Messages <span id="unread-badge" class="nav-badge" style="display:none;"></span></button>
+                <button class="sidebar-tab" data-tab="photo"><i class="ri-image-line"></i> Photos</button>
+                <button class="sidebar-tab" data-tab="resume"><i class="ri-file-user-line"></i> Resume</button>
+                <button class="sidebar-tab" data-tab="projects"><i class="ri-briefcase-line"></i> Projects</button>
+                <button class="sidebar-tab" data-tab="certificates"><i class="ri-award-line"></i> Certificates</button>
             </nav>
-
-            <main class="admin-main">
-            <div class="tab-panel active" id="tab-photo">
-            <section class="panel">
-                <h2>Hero Photo</h2>
-                <p class="panel-hint">Shown large on the homepage hero, next to your name.</p>
-                <div class="site-asset-row">
-                    <img id="current-photo-hero" class="site-asset-preview" alt="Current hero photo">
-                    <div class="site-asset-actions">
-                        <label class="upload-btn">
-                            Upload New Photo
-                            <input type="file" class="photo-slot-file" data-slot="hero" accept="image/png,image/jpeg,image/webp" hidden />
-                        </label>
-                        <button type="button" class="delete-btn photo-slot-delete" data-slot="hero">Reset to Default</button>
-                        <span id="photo-status-hero" class="upload-status"></span>
-                    </div>
-                </div>
-            </section>
-
-            <section class="panel">
-                <h2>About Photo</h2>
-                <p class="panel-hint">Shown in the About section, next to your bio.</p>
-                <div class="site-asset-row">
-                    <img id="current-photo-about" class="site-asset-preview" alt="Current about photo">
-                    <div class="site-asset-actions">
-                        <label class="upload-btn">
-                            Upload New Photo
-                            <input type="file" class="photo-slot-file" data-slot="about" accept="image/png,image/jpeg,image/webp" hidden />
-                        </label>
-                        <button type="button" class="delete-btn photo-slot-delete" data-slot="about">Reset to Default</button>
-                        <span id="photo-status-about" class="upload-status"></span>
-                    </div>
-                </div>
-            </section>
-
-            <section class="panel">
-                <h2>Background Photo</h2>
-                <p class="panel-hint">Used as the faint scrolling text background further down the page.</p>
-                <div class="site-asset-row">
-                    <img id="current-photo-craft" class="site-asset-preview" alt="Current background photo">
-                    <div class="site-asset-actions">
-                        <label class="upload-btn">
-                            Upload New Photo
-                            <input type="file" class="photo-slot-file" data-slot="craft" accept="image/png,image/jpeg,image/webp" hidden />
-                        </label>
-                        <button type="button" class="delete-btn photo-slot-delete" data-slot="craft">Reset to Default</button>
-                        <span id="photo-status-craft" class="upload-status"></span>
-                    </div>
-                </div>
-            </section>
-
-            <p id="photo-linkedin-reminder" class="linkedin-reminder" style="display:none;">
-                ✅ Photo updated on the site. Don't forget to update it on LinkedIn manually too — LinkedIn doesn't allow automatic updates.
-            </p>
+            <div class="sidebar-footer">
+                <a href="/" target="_blank" class="sidebar-link"><i class="ri-external-link-line"></i> View Site</a>
+                <button id="logout-btn" class="sidebar-link danger"><i class="ri-logout-box-r-line"></i> Log Out</button>
             </div>
+        </aside>
 
-            <div class="tab-panel" id="tab-resume">
-            <section class="panel">
-                <h2>Resume Editor</h2>
-                <p class="panel-hint"><a id="current-resume" href="#" target="_blank">View current resume PDF</a></p>
+        <div class="app-main">
+            <header class="topbar">
+                <button id="menu-btn" class="icon-btn menu-btn" aria-label="Toggle sidebar"><i class="ri-menu-line"></i></button>
+                <h1 id="page-title" class="page-title">Dashboard</h1>
+                <div class="topbar-right">
+                    <span class="welcome">Welcome, Admin</span>
+                    <a href="/" target="_blank" class="btn btn-ghost btn-sm"><i class="ri-external-link-line"></i> View Site</a>
+                </div>
+            </header>
 
-                <form id="resume-form" class="resume-form">
-                    <label>Full Name
-                        <input type="text" id="resume-name" required />
-                    </label>
-                    <label>Title
-                        <input type="text" id="resume-title" placeholder="e.g. .NET Developer" />
-                    </label>
-                    <div class="resume-two-col">
-                        <label>Phone
-                            <input type="text" id="resume-phone" />
-                        </label>
-                        <label>Email
-                            <input type="text" id="resume-email" />
-                        </label>
+            <main class="content">
+                <div id="storage-warning" class="alert alert-warning" style="display:none;">
+                    <i class="ri-error-warning-line"></i>
+                    <div>
+                        <strong>Storage isn't persistent on this deployment.</strong>
+                        Messages, projects, certificates and uploads are being saved to temporary serverless storage and will disappear or not show up here.
+                        Connect Supabase (set <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_KEY</code> in Vercel) to fix this. Contact messages still arrive by email in the meantime.
                     </div>
-                    <label>Summary
-                        <textarea id="resume-summary" rows="4"></textarea>
-                    </label>
-                    <label>Skills (comma-separated)
-                        <input type="text" id="resume-skills" placeholder="HTML, CSS, JavaScript, .NET" />
-                    </label>
+                </div>
 
-                    <div class="resume-subsection">
-                        <div class="resume-subsection-header">
-                            <h3>Professional Experience</h3>
-                            <button type="button" id="add-experience-btn" class="small-btn">+ Add Experience</button>
+                <!-- DASHBOARD -->
+                <div class="tab-panel active" id="tab-dashboard">
+                    <div class="stats-grid">
+                        <button class="stat-card" data-goto="messages">
+                            <span class="stat-label"><i class="ri-mail-line"></i> Messages</span>
+                            <span class="stat-value" id="stat-messages">0</span>
+                        </button>
+                        <button class="stat-card" data-goto="messages" data-filter="unread">
+                            <span class="stat-label"><i class="ri-mail-unread-line"></i> Unread</span>
+                            <span class="stat-value" id="stat-unread">0</span>
+                        </button>
+                        <button class="stat-card" data-goto="projects">
+                            <span class="stat-label"><i class="ri-briefcase-line"></i> Projects</span>
+                            <span class="stat-value" id="stat-projects">0</span>
+                        </button>
+                        <button class="stat-card" data-goto="certificates">
+                            <span class="stat-label"><i class="ri-award-line"></i> Certificates</span>
+                            <span class="stat-value" id="stat-certificates">0</span>
+                        </button>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <section class="panel">
+                            <div class="panel-header">
+                                <h2>Recent Messages</h2>
+                                <button class="btn btn-ghost btn-sm" data-goto="messages">View all <i class="ri-arrow-right-line"></i></button>
+                            </div>
+                            <div id="recent-messages" class="recent-list"></div>
+                        </section>
+
+                        <section class="panel">
+                            <div class="panel-header">
+                                <h2>Quick Actions</h2>
+                            </div>
+                            <div class="quick-actions">
+                                <button class="quick-action" data-goto="projects"><i class="ri-add-line"></i> Add a project</button>
+                                <button class="quick-action" data-goto="certificates"><i class="ri-award-line"></i> Add a certificate</button>
+                                <button class="quick-action" data-goto="resume"><i class="ri-file-edit-line"></i> Update resume</button>
+                                <button class="quick-action" data-goto="photo"><i class="ri-camera-line"></i> Change photos</button>
+                                <a class="quick-action" href="/" target="_blank"><i class="ri-global-line"></i> Open live site</a>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- MESSAGES -->
+                <div class="tab-panel" id="tab-messages">
+                    <div class="toolbar">
+                        <div class="filter-pills" id="message-filters">
+                            <button class="pill active" data-filter="all">All (<span id="count-all">0</span>)</button>
+                            <button class="pill" data-filter="unread">Unread (<span id="count-unread">0</span>)</button>
+                            <button class="pill" data-filter="read">Read (<span id="count-read">0</span>)</button>
                         </div>
-                        <div id="experience-rows"></div>
-                    </div>
-
-                    <div class="resume-subsection">
-                        <div class="resume-subsection-header">
-                            <h3>Education</h3>
-                            <button type="button" id="add-education-btn" class="small-btn">+ Add Education</button>
+                        <div class="toolbar-right">
+                            <div class="search-field">
+                                <i class="ri-search-line"></i>
+                                <input type="search" id="message-search" placeholder="Search name, email or message" />
+                            </div>
+                            <button id="mark-all-read-btn" class="btn btn-ghost btn-sm"><i class="ri-check-double-line"></i> Mark all read</button>
+                            <button id="refresh-messages-btn" class="btn btn-ghost btn-sm" aria-label="Refresh"><i class="ri-refresh-line"></i></button>
                         </div>
-                        <div id="education-rows"></div>
                     </div>
 
-                    <label>Extracurricular Activities
-                        <input type="text" id="resume-extracurricular" />
-                    </label>
+                    <div id="messages-layout" class="messages-layout">
+                        <section class="panel panel-flush">
+                            <div class="table-wrap">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-status"></th>
+                                            <th>Name</th>
+                                            <th class="hide-sm">Email</th>
+                                            <th class="hide-md">Message</th>
+                                            <th class="hide-sm">Date</th>
+                                            <th class="col-actions"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="messages-list"></tbody>
+                                </table>
+                            </div>
+                        </section>
 
-                    <div class="form-actions">
-                        <button type="submit" id="resume-save-btn">Save &amp; Generate PDF</button>
-                        <span id="resume-status" class="upload-status"></span>
+                        <aside id="message-detail" class="panel message-detail" style="display:none;"></aside>
                     </div>
-                    <p id="resume-form-error" class="error"></p>
-                </form>
+                </div>
 
-                <p class="panel-hint">Prefer to upload a ready-made PDF instead?
-                    <label class="upload-btn inline-upload-btn">
-                        Upload PDF
-                        <input type="file" id="resume-file" accept="application/pdf" hidden />
-                    </label>
-                </p>
+                <!-- PHOTOS -->
+                <div class="tab-panel" id="tab-photo">
+                    <section class="panel">
+                        <h2>Hero Photo</h2>
+                        <p class="panel-hint">Shown large on the homepage hero, next to your name.</p>
+                        <div class="site-asset-row">
+                            <img id="current-photo-hero" class="site-asset-preview" alt="Current hero photo">
+                            <div class="site-asset-actions">
+                                <label class="btn btn-secondary">
+                                    <i class="ri-upload-2-line"></i> Upload New Photo
+                                    <input type="file" class="photo-slot-file" data-slot="hero" accept="image/png,image/jpeg,image/webp" hidden />
+                                </label>
+                                <button type="button" class="btn btn-danger-soft photo-slot-delete" data-slot="hero">Reset to Default</button>
+                                <span id="photo-status-hero" class="upload-status"></span>
+                            </div>
+                        </div>
+                    </section>
 
-                <p id="resume-linkedin-reminder" class="linkedin-reminder">
-                    ✅ Resume updated on the site. Don't forget to update it on LinkedIn's "Featured" section manually too — LinkedIn doesn't allow automatic updates.
-                </p>
-            </section>
-            </div>
+                    <section class="panel">
+                        <h2>About Photo</h2>
+                        <p class="panel-hint">Shown in the About section, next to your bio.</p>
+                        <div class="site-asset-row">
+                            <img id="current-photo-about" class="site-asset-preview" alt="Current about photo">
+                            <div class="site-asset-actions">
+                                <label class="btn btn-secondary">
+                                    <i class="ri-upload-2-line"></i> Upload New Photo
+                                    <input type="file" class="photo-slot-file" data-slot="about" accept="image/png,image/jpeg,image/webp" hidden />
+                                </label>
+                                <button type="button" class="btn btn-danger-soft photo-slot-delete" data-slot="about">Reset to Default</button>
+                                <span id="photo-status-about" class="upload-status"></span>
+                            </div>
+                        </div>
+                    </section>
 
-            <div class="tab-panel" id="tab-projects">
-            <section class="panel">
-                <h2>Projects</h2>
-                <div id="projects-list" class="projects-list"></div>
-            </section>
+                    <section class="panel">
+                        <h2>Background Photo</h2>
+                        <p class="panel-hint">Used as the faint scrolling text background further down the page.</p>
+                        <div class="site-asset-row">
+                            <img id="current-photo-craft" class="site-asset-preview" alt="Current background photo">
+                            <div class="site-asset-actions">
+                                <label class="btn btn-secondary">
+                                    <i class="ri-upload-2-line"></i> Upload New Photo
+                                    <input type="file" class="photo-slot-file" data-slot="craft" accept="image/png,image/jpeg,image/webp" hidden />
+                                </label>
+                                <button type="button" class="btn btn-danger-soft photo-slot-delete" data-slot="craft">Reset to Default</button>
+                                <span id="photo-status-craft" class="upload-status"></span>
+                            </div>
+                        </div>
+                    </section>
 
-            <section class="panel">
-                <h2 id="form-title">Add New Project</h2>
-                <form id="project-form" class="project-form">
-                    <input type="hidden" id="project-id" />
-                    <label>Title
-                        <input type="text" id="project-title" placeholder="e.g. Mintex Care" required />
-                    </label>
-                    <label>Live URL (leave blank if private/not public)
-                        <input type="url" id="project-url" placeholder="https://example.com/" />
-                    </label>
-                    <label>Image
-                        <div class="image-field">
-                            <img id="image-preview" class="image-preview" style="display:none;" alt="">
-                            <input type="text" id="project-image" placeholder="images/example.png" required />
-                            <label class="upload-btn">
-                                Upload Image
-                                <input type="file" id="project-image-file" accept="image/*" hidden />
+                    <p id="photo-linkedin-reminder" class="linkedin-reminder" style="display:none;">
+                        ✅ Photo updated on the site. Don't forget to update it on LinkedIn manually too — LinkedIn doesn't allow automatic updates.
+                    </p>
+                </div>
+
+                <!-- RESUME -->
+                <div class="tab-panel" id="tab-resume">
+                    <section class="panel">
+                        <div class="panel-header">
+                            <h2>Resume Editor</h2>
+                            <a id="current-resume" href="#" target="_blank" class="btn btn-ghost btn-sm"><i class="ri-file-pdf-2-line"></i> View current PDF</a>
+                        </div>
+
+                        <form id="resume-form" class="form">
+                            <label>Full Name
+                                <input type="text" id="resume-name" required />
                             </label>
-                        </div>
-                        <span id="upload-status" class="upload-status"></span>
-                    </label>
-                    <div class="form-actions">
-                        <button type="submit" id="save-btn">Add Project</button>
-                        <button type="button" id="cancel-edit-btn" style="display:none;">Cancel</button>
-                    </div>
-                    <p id="form-error" class="error"></p>
-                </form>
-            </section>
-            </div>
-
-            <div class="tab-panel" id="tab-certificates">
-            <section class="panel">
-                <h2>Certificates</h2>
-                <div id="certificates-list" class="projects-list"></div>
-            </section>
-
-            <section class="panel">
-                <h2 id="cert-form-title">Add New Certificate</h2>
-                <form id="certificate-form" class="project-form">
-                    <input type="hidden" id="cert-id" />
-                    <label>Title
-                        <input type="text" id="cert-title" placeholder="e.g. MERN Stack Developer" required />
-                    </label>
-                    <label>Issuer / Organization
-                        <input type="text" id="cert-issuer" placeholder="e.g. Be Practical Tech Solutions" />
-                    </label>
-                    <label>Certificate Image or PDF
-                        <div class="image-field">
-                            <img id="cert-image-preview" class="image-preview" style="display:none;" alt="">
-                            <input type="text" id="cert-image" placeholder="images/example.png" required />
-                            <label class="upload-btn">
-                                Upload Image or PDF
-                                <input type="file" id="cert-image-file" accept="image/*,application/pdf" hidden />
+                            <label>Title
+                                <input type="text" id="resume-title" placeholder="e.g. .NET Developer" />
                             </label>
-                        </div>
-                        <span id="cert-upload-status" class="upload-status"></span>
-                        <span class="panel-hint">PDFs are automatically converted to an image (first page) for display.</span>
-                    </label>
-                    <div class="form-actions">
-                        <button type="submit" id="cert-save-btn">Add Certificate</button>
-                        <button type="button" id="cert-cancel-edit-btn" style="display:none;">Cancel</button>
-                    </div>
-                    <p id="cert-form-error" class="error"></p>
-                </form>
-            </section>
-            </div>
+                            <div class="two-col">
+                                <label>Phone
+                                    <input type="text" id="resume-phone" />
+                                </label>
+                                <label>Email
+                                    <input type="text" id="resume-email" />
+                                </label>
+                            </div>
+                            <label>Summary
+                                <textarea id="resume-summary" rows="4"></textarea>
+                            </label>
+                            <label>Skills (comma-separated)
+                                <input type="text" id="resume-skills" placeholder="HTML, CSS, JavaScript, .NET" />
+                            </label>
 
-            <div class="tab-panel" id="tab-messages">
-            <section class="panel">
-                <h2>Messages</h2>
-                <div id="messages-list" class="messages-list"></div>
-            </section>
-            </div>
+                            <div class="resume-subsection">
+                                <div class="resume-subsection-header">
+                                    <h3>Professional Experience</h3>
+                                    <button type="button" id="add-experience-btn" class="btn btn-secondary btn-sm"><i class="ri-add-line"></i> Add Experience</button>
+                                </div>
+                                <div id="experience-rows"></div>
+                            </div>
+
+                            <div class="resume-subsection">
+                                <div class="resume-subsection-header">
+                                    <h3>Education</h3>
+                                    <button type="button" id="add-education-btn" class="btn btn-secondary btn-sm"><i class="ri-add-line"></i> Add Education</button>
+                                </div>
+                                <div id="education-rows"></div>
+                            </div>
+
+                            <label>Extracurricular Activities
+                                <input type="text" id="resume-extracurricular" />
+                            </label>
+
+                            <div class="form-actions">
+                                <button type="submit" id="resume-save-btn" class="btn btn-primary">Save &amp; Generate PDF</button>
+                                <span id="resume-status" class="upload-status"></span>
+                            </div>
+                            <p id="resume-form-error" class="error"></p>
+                        </form>
+                    </section>
+
+                    <section class="panel">
+                        <h2>Upload a Ready-made PDF</h2>
+                        <p class="panel-hint">Replaces the resume everywhere on the site. The editor above won't change it.</p>
+                        <label class="btn btn-secondary">
+                            <i class="ri-upload-2-line"></i> Upload PDF
+                            <input type="file" id="resume-file" accept="application/pdf" hidden />
+                        </label>
+                    </section>
+
+                    <p id="resume-linkedin-reminder" class="linkedin-reminder">
+                        ✅ Resume updated on the site. Don't forget to update it on LinkedIn's "Featured" section manually too — LinkedIn doesn't allow automatic updates.
+                    </p>
+                </div>
+
+                <!-- PROJECTS -->
+                <div class="tab-panel" id="tab-projects">
+                    <section class="panel">
+                        <h2>Projects</h2>
+                        <div id="projects-list" class="item-list"></div>
+                    </section>
+
+                    <section class="panel">
+                        <h2 id="form-title">Add New Project</h2>
+                        <form id="project-form" class="form">
+                            <input type="hidden" id="project-id" />
+                            <label>Title
+                                <input type="text" id="project-title" placeholder="e.g. Mintex Care" required />
+                            </label>
+                            <label>Live URL (leave blank if private/not public)
+                                <input type="url" id="project-url" placeholder="https://example.com/" />
+                            </label>
+                            <label>Image
+                                <div class="image-field">
+                                    <img id="image-preview" class="image-preview" style="display:none;" alt="">
+                                    <input type="text" id="project-image" placeholder="images/example.png" required />
+                                    <label class="btn btn-secondary">
+                                        <i class="ri-upload-2-line"></i> Upload
+                                        <input type="file" id="project-image-file" accept="image/*" hidden />
+                                    </label>
+                                </div>
+                                <span id="upload-status" class="upload-status"></span>
+                            </label>
+                            <div class="form-actions">
+                                <button type="submit" id="save-btn" class="btn btn-primary">Add Project</button>
+                                <button type="button" id="cancel-edit-btn" class="btn btn-secondary" style="display:none;">Cancel</button>
+                            </div>
+                            <p id="form-error" class="error"></p>
+                        </form>
+                    </section>
+                </div>
+
+                <!-- CERTIFICATES -->
+                <div class="tab-panel" id="tab-certificates">
+                    <section class="panel">
+                        <h2>Certificates</h2>
+                        <div id="certificates-list" class="item-list"></div>
+                    </section>
+
+                    <section class="panel">
+                        <h2 id="cert-form-title">Add New Certificate</h2>
+                        <form id="certificate-form" class="form">
+                            <input type="hidden" id="cert-id" />
+                            <label>Title
+                                <input type="text" id="cert-title" placeholder="e.g. MERN Stack Developer" required />
+                            </label>
+                            <label>Issuer / Organization
+                                <input type="text" id="cert-issuer" placeholder="e.g. Be Practical Tech Solutions" />
+                            </label>
+                            <label>Certificate Image or PDF
+                                <div class="image-field">
+                                    <img id="cert-image-preview" class="image-preview" style="display:none;" alt="">
+                                    <input type="text" id="cert-image" placeholder="images/example.png" required />
+                                    <label class="btn btn-secondary">
+                                        <i class="ri-upload-2-line"></i> Upload
+                                        <input type="file" id="cert-image-file" accept="image/*,application/pdf" hidden />
+                                    </label>
+                                </div>
+                                <span id="cert-upload-status" class="upload-status"></span>
+                                <span class="panel-hint">PDFs are automatically converted to an image (first page) for display.</span>
+                            </label>
+                            <div class="form-actions">
+                                <button type="submit" id="cert-save-btn" class="btn btn-primary">Add Certificate</button>
+                                <button type="button" id="cert-cancel-edit-btn" class="btn btn-secondary" style="display:none;">Cancel</button>
+                            </div>
+                            <p id="cert-form-error" class="error"></p>
+                        </form>
+                    </section>
+                </div>
             </main>
         </div>
     </div>
+
+    <div id="confirm-modal" class="modal" style="display:none;">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+            <h3 id="confirm-title">Are you sure?</h3>
+            <p id="confirm-text"></p>
+            <div class="modal-actions">
+                <button id="confirm-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="confirm-ok" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-root" class="toast-root"></div>
 
     <script src="admin.js"></script>
 </body>

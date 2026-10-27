@@ -202,6 +202,74 @@ function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function formatMessageDate(iso) {
+    return new Date(iso).toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    }) + ' IST';
+}
+
+// Table-based layout with inline styles only - Gmail/Outlook strip <style>
+// blocks and most modern CSS, so this is the only reliable way to get a
+// consistently structured email.
+function renderContactEmailHtml(msg) {
+    const name = escapeHtml(msg.name);
+    const email = escapeHtml(msg.email);
+    const body = escapeHtml(msg.message).replace(/\r?\n/g, '<br>');
+    const date = escapeHtml(formatMessageDate(msg.createdAt));
+    const replyHref = `mailto:${encodeURIComponent(msg.email)}?subject=${encodeURIComponent('Re: Your message on my portfolio')}`;
+    const label = 'font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#888888;padding:0 0 4px;';
+    const value = 'font-size:15px;color:#111111;padding:0 0 18px;';
+
+    return `<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#f0f0f0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0f0f0;padding:32px 12px;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;">
+  <tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;">
+      <tr><td style="background:#111111;padding:22px 28px;">
+        <div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#9a9a9a;">Portfolio Contact Form</div>
+        <div style="font-size:20px;font-weight:700;color:#ffffff;padding-top:6px;">New message from ${name}</div>
+      </td></tr>
+      <tr><td style="padding:28px 28px 8px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr><td style="${label}">Name</td></tr>
+          <tr><td style="${value}font-weight:600;">${name}</td></tr>
+          <tr><td style="${label}">Email</td></tr>
+          <tr><td style="${value}"><a href="mailto:${email}" style="color:#111111;">${email}</a></td></tr>
+          <tr><td style="${label}">Received</td></tr>
+          <tr><td style="${value}">${date}</td></tr>
+          <tr><td style="${label}">Message</td></tr>
+          <tr><td style="padding:0 0 24px;">
+            <div style="background:#f6f6f6;border-left:3px solid #111111;border-radius:6px;padding:16px 18px;font-size:15px;line-height:1.6;color:#222222;">${body}</div>
+          </td></tr>
+        </table>
+      </td></tr>
+      <tr><td style="padding:0 28px 28px;">
+        <a href="${replyHref}" style="display:inline-block;background:#111111;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:999px;">Reply to ${name}</a>
+      </td></tr>
+      <tr><td style="background:#fafafa;border-top:1px solid #eeeeee;padding:14px 28px;font-size:12px;color:#999999;">
+        Sent automatically from your portfolio. Hitting reply in your inbox goes straight to ${email}.
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+}
+
+function renderContactEmailText(msg) {
+    return [
+        'New portfolio message',
+        '',
+        `Name:     ${msg.name}`,
+        `Email:    ${msg.email}`,
+        `Received: ${formatMessageDate(msg.createdAt)}`,
+        '',
+        'Message:',
+        msg.message,
+    ].join('\n');
+}
+
 async function sendContactNotification(msg, attempt = 1) {
     if (!mailTransporter) {
         console.log('Email not configured (missing GMAIL_USER/GMAIL_APP_PASSWORD) - skipping notification email.');
@@ -211,10 +279,10 @@ async function sendContactNotification(msg, attempt = 1) {
         await mailTransporter.sendMail({
             from: `Portfolio Contact Form <${process.env.GMAIL_USER}>`,
             to: process.env.NOTIFY_EMAIL || process.env.GMAIL_USER,
-            replyTo: msg.email,
+            replyTo: `"${msg.name.replace(/"/g, '')}" <${msg.email}>`,
             subject: `New portfolio message from ${msg.name}`,
-            text: `From: ${msg.name} <${msg.email}>\n\n${msg.message}`,
-            html: `<p><strong>From:</strong> ${escapeHtml(msg.name)} &lt;${escapeHtml(msg.email)}&gt;</p><p>${escapeHtml(msg.message).replace(/\n/g, '<br>')}</p>`,
+            text: renderContactEmailText(msg),
+            html: renderContactEmailHtml(msg),
         });
         console.log('Notification email sent for message ' + msg.id + ' (attempt ' + attempt + ')');
     } catch (err) {
@@ -437,8 +505,15 @@ app.post('/api/admin/logout', (req, res) => {
     res.json({ ok: true });
 });
 
+// On Vercel without Supabase, every write lands in a single instance's /tmp
+// and silently disappears - the admin panel surfaces this as a warning
+// instead of just showing "No messages yet".
 app.get('/api/admin/session', (req, res) => {
-    res.json({ isAdmin: isValidAdminToken(parseCookies(req)[ADMIN_COOKIE]) });
+    res.json({
+        isAdmin: isValidAdminToken(parseCookies(req)[ADMIN_COOKIE]),
+        storage: supabase ? 'supabase' : 'file',
+        persistent: Boolean(supabase) || !IS_VERCEL,
+    });
 });
 
 // Admin project CRUD
@@ -522,22 +597,40 @@ app.delete('/api/admin/certificates/:id', requireAuth, async (req, res) => {
 });
 
 // Public contact form submission
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 app.post('/api/contact', async (req, res) => {
-    const { name, email, message } = req.body || {};
+    const name = String(req.body?.name || '').trim();
+    const email = String(req.body?.email || '').trim();
+    const message = String(req.body?.message || '').trim();
     if (!name || !email || !message) {
         return res.status(400).json({ error: 'name, email, and message are required' });
     }
+    if (!EMAIL_RE.test(email)) {
+        return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    if (name.length > 100 || email.length > 200 || message.length > 5000) {
+        return res.status(400).json({ error: 'Message is too long' });
+    }
 
-    const messages = await readMessages();
     const newMessage = {
         id: Date.now().toString(36) + crypto.randomBytes(3).toString('hex'),
         name,
         email,
         message,
+        read: false,
         createdAt: new Date().toISOString(),
     };
-    messages.unshift(newMessage);
-    await writeMessages(messages);
+
+    // A storage failure must not lose the message - the email notification
+    // below still delivers it even if saving didn't work.
+    try {
+        const messages = await readMessages();
+        messages.unshift(newMessage);
+        await writeMessages(messages);
+    } catch (err) {
+        console.error('Failed to save contact message ' + newMessage.id + ':', err.message);
+    }
 
     if (IS_VERCEL) {
         // Serverless functions can freeze/terminate right after the response
@@ -556,6 +649,23 @@ app.post('/api/contact', async (req, res) => {
 // Admin: view/delete contact messages
 app.get('/api/admin/messages', requireAuth, async (req, res) => {
     res.json(await readMessages());
+});
+
+app.patch('/api/admin/messages/:id', requireAuth, async (req, res) => {
+    const messages = await readMessages();
+    const msg = messages.find((m) => m.id === req.params.id);
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+
+    if (typeof req.body?.read === 'boolean') msg.read = req.body.read;
+    await writeMessages(messages);
+    res.json(msg);
+});
+
+app.post('/api/admin/messages/mark-all-read', requireAuth, async (req, res) => {
+    const messages = await readMessages();
+    messages.forEach((m) => { m.read = true; });
+    await writeMessages(messages);
+    res.json({ ok: true });
 });
 
 app.delete('/api/admin/messages/:id', requireAuth, async (req, res) => {

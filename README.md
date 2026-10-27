@@ -39,7 +39,7 @@ A personal portfolio for **Shivam Goswami**, a .NET Developer. The public site i
 | **Frontend Core** | HTML5, Vanilla CSS3, JavaScript (ES6+) |
 | **Animation** | GSAP 3, GSAP ScrollTrigger, Locomotive Scroll 4 |
 | **Backend** | Node.js, Express |
-| **Auth** | express-session (cookie-based admin login) |
+| **Auth** | Signed, expiring HttpOnly cookie (stateless admin login) |
 | **Data Storage** | JSON files (`data/`) |
 | **File Uploads** | Multer |
 | **Email** | Nodemailer (Gmail SMTP) |
@@ -121,6 +121,20 @@ This app has a real backend (file storage, sessions, email, PDF generation) that
 Without `SUPABASE_URL`/`SUPABASE_SERVICE_KEY` set, everything falls back to local files (fine for local dev, not for Vercel production).
 
 Environment variables: same as the `.env` file above, plus `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`, added via the Vercel dashboard (Project → Settings → Environment Variables).
+
+### Supabase setup (one time)
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. **SQL Editor** → run:
+   ```sql
+   create table if not exists kv_store (
+     key text primary key,
+     value jsonb not null
+   );
+   ```
+3. **Storage** → New bucket → name it `images` → tick **Public bucket**.
+4. **Project Settings → API** → copy the Project URL into `SUPABASE_URL` and the `service_role` secret into `SUPABASE_SERVICE_KEY` (Vercel → Settings → Environment Variables, Production).
+5. Redeploy. The admin panel's yellow "Storage isn't persistent" banner disappears once this is working.
 
 ---
 

@@ -1,8 +1,10 @@
+const bootScreen = document.getElementById('boot-screen');
 const loginScreen = document.getElementById('login-screen');
 const adminScreen = document.getElementById('admin-screen');
 
 const loginForm = document.getElementById('login-form');
 const loginError = document.getElementById('login-error');
+const loginBtn = document.getElementById('login-btn');
 
 const projectsList = document.getElementById('projects-list');
 const projectForm = document.getElementById('project-form');
@@ -21,27 +23,473 @@ const imagePreview = document.getElementById('image-preview');
 const uploadStatus = document.getElementById('upload-status');
 
 const messagesList = document.getElementById('messages-list');
+const messagesLayout = document.getElementById('messages-layout');
+const messageDetail = document.getElementById('message-detail');
+const messageSearch = document.getElementById('message-search');
+const unreadBadge = document.getElementById('unread-badge');
 
-// SIDEBAR TABS
+const state = {
+    messages: [],
+    projects: [],
+    certificates: [],
+    messageFilter: 'all',
+    messageQuery: '',
+    selectedMessageId: null,
+};
+
+// HELPERS
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+}
+
+function escapeAttr(str) {
+    return escapeHtml(str || '').replace(/"/g, '&quot;');
+}
+
+// Uploads return either a site-relative path (images/abc.jpg, local disk
+// mode) or a full Supabase Storage URL (https://..., when Supabase is
+// configured) - only the first needs a leading slash.
+function resolveImageSrc(image) {
+    return /^https?:\/\//.test(image) ? image : `/${image}`;
+}
+
+function initials(name) {
+    return String(name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('') || '?';
+}
+
+function formatDate(iso, withTime = false) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return withTime
+        ? d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+        : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function timeAgo(iso) {
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
+    return formatDate(iso);
+}
+
+function toast(text, type = 'success') {
+    const el = document.createElement('div');
+    el.className = `toast ${type === 'error' ? 'error' : ''}`;
+    el.innerHTML = `<i class="${type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'}"></i><span>${escapeHtml(text)}</span>`;
+    document.getElementById('toast-root').appendChild(el);
+    setTimeout(() => {
+        el.classList.add('hide');
+        setTimeout(() => el.remove(), 250);
+    }, 3200);
+}
+
+const confirmModal = document.getElementById('confirm-modal');
+
+function confirmDialog({ title = 'Are you sure?', text = '', okLabel = 'Delete' } = {}) {
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-text').textContent = text;
+    const okBtn = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+    okBtn.textContent = okLabel;
+    confirmModal.style.display = 'flex';
+    okBtn.focus();
+
+    return new Promise((resolve) => {
+        const close = (result) => {
+            confirmModal.style.display = 'none';
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            confirmModal.removeEventListener('click', onBackdrop);
+            document.removeEventListener('keydown', onKey);
+            resolve(result);
+        };
+        const onOk = () => close(true);
+        const onCancel = () => close(false);
+        const onBackdrop = (e) => { if (e.target === confirmModal) close(false); };
+        const onKey = (e) => { if (e.key === 'Escape') close(false); };
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        confirmModal.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKey);
+    });
+}
+
+// Wraps fetch for admin-only endpoints: if the session cookie is missing or
+// expired, the API returns 401 - without this check, code that assumes the
+// response body is always the expected data (an array, an object) would
+// silently misread {"error":"Unauthorized"} as "no data" instead of
+// recognizing the session dropped and prompting a fresh login.
+async function fetchJson(url, options) {
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+        showLogin('Your session expired - please log in again.');
+        return null;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+}
+
+function jsonBody(method, payload) {
+    return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
+}
+
+// NAVIGATION
+
+const TAB_TITLES = {
+    dashboard: 'Dashboard',
+    messages: 'Messages',
+    photo: 'Photos',
+    resume: 'Resume',
+    projects: 'Projects',
+    certificates: 'Certificates',
+};
+
+function selectTab(name) {
+    if (!TAB_TITLES[name]) name = 'dashboard';
+    document.querySelectorAll('.sidebar-tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('active', p.id === `tab-${name}`));
+    document.getElementById('page-title').textContent = TAB_TITLES[name];
+    adminScreen.classList.remove('sidebar-open');
+    if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+    window.scrollTo(0, 0);
+}
 
 document.querySelectorAll('.sidebar-tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-        document.querySelectorAll('.sidebar-tab').forEach((t) => t.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+    tab.addEventListener('click', () => selectTab(tab.dataset.tab));
+});
+
+document.querySelectorAll('[data-goto]').forEach((el) => {
+    el.addEventListener('click', () => {
+        if (el.dataset.filter) setMessageFilter(el.dataset.filter);
+        selectTab(el.dataset.goto);
     });
 });
 
-function showAdmin() {
+document.getElementById('menu-btn').addEventListener('click', () => adminScreen.classList.toggle('sidebar-open'));
+document.getElementById('sidebar-overlay').addEventListener('click', () => adminScreen.classList.remove('sidebar-open'));
+
+// AUTH
+
+let messagePoll = null;
+
+function showAdmin(session) {
+    bootScreen.style.display = 'none';
     loginScreen.style.display = 'none';
-    adminScreen.style.display = 'block';
+    adminScreen.style.display = 'flex';
+    document.getElementById('storage-warning').style.display = session && session.persistent === false ? 'flex' : 'none';
+    selectTab(location.hash.slice(1));
+
     loadProjects();
     loadCertificates();
     loadMessages();
     loadSiteAssets();
     loadResumeData();
+
+    // Pick up new contact messages without a manual reload.
+    clearInterval(messagePoll);
+    messagePoll = setInterval(() => {
+        if (document.visibilityState === 'visible') loadMessages({ silent: true });
+    }, 60000);
 }
+
+function showLogin(message) {
+    clearInterval(messagePoll);
+    bootScreen.style.display = 'none';
+    adminScreen.style.display = 'none';
+    loginScreen.style.display = 'flex';
+    loginError.textContent = message || '';
+}
+
+async function checkSession() {
+    try {
+        const res = await fetch('/api/admin/session');
+        const data = await res.json();
+        if (data.isAdmin) showAdmin(data);
+        else showLogin();
+    } catch {
+        showLogin('Could not reach the server. Please try again.');
+    }
+}
+
+document.getElementById('toggle-password').addEventListener('click', (e) => {
+    const input = document.getElementById('login-password');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    e.currentTarget.innerHTML = `<i class="${show ? 'ri-eye-off-line' : 'ri-eye-line'}"></i>`;
+});
+
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.textContent = '';
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Signing in…';
+
+    try {
+        const res = await fetch('/api/admin/login', jsonBody('POST', {
+            username: document.getElementById('login-username').value,
+            password: document.getElementById('login-password').value,
+        }));
+
+        if (res.ok) {
+            loginForm.reset();
+            await checkSession();
+        } else {
+            const data = await res.json().catch(() => ({}));
+            loginError.textContent = data.error || 'Login failed';
+        }
+    } catch {
+        loginError.textContent = 'Could not reach the server. Please try again.';
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign In';
+    }
+});
+
+logoutBtn.addEventListener('click', async () => {
+    await fetch('/api/admin/logout', { method: 'POST' });
+    showLogin();
+});
+
+// DASHBOARD
+
+function renderDashboard() {
+    const unread = state.messages.filter((m) => !m.read).length;
+    document.getElementById('stat-messages').textContent = state.messages.length;
+    document.getElementById('stat-unread').textContent = unread;
+    document.getElementById('stat-projects').textContent = state.projects.length;
+    document.getElementById('stat-certificates').textContent = state.certificates.length;
+
+    unreadBadge.textContent = unread;
+    unreadBadge.style.display = unread ? 'inline-flex' : 'none';
+    document.title = unread ? `(${unread}) Admin | Shivam Goswami` : 'Admin | Shivam Goswami';
+
+    const recent = document.getElementById('recent-messages');
+    recent.innerHTML = '';
+    if (!state.messages.length) {
+        recent.innerHTML = '<p class="empty-state"><i class="ri-inbox-line"></i>No messages yet.</p>';
+        return;
+    }
+    state.messages.slice(0, 5).forEach((m) => {
+        const item = document.createElement('button');
+        item.className = 'recent-item';
+        item.innerHTML = `
+            <span class="avatar">${escapeHtml(initials(m.name))}</span>
+            <div class="info">
+                <strong>${escapeHtml(m.name)}</strong>
+                <span>${escapeHtml(m.message)}</span>
+            </div>
+            <span class="upload-status">${escapeHtml(timeAgo(m.createdAt))}</span>
+            ${m.read ? '' : '<span class="unread-dot"></span>'}
+        `;
+        item.addEventListener('click', () => {
+            selectTab('messages');
+            openMessage(m.id);
+        });
+        recent.appendChild(item);
+    });
+}
+
+// MESSAGES
+
+async function loadMessages({ silent = false } = {}) {
+    try {
+        const messages = await fetchJson('/api/admin/messages');
+        if (!messages) return;
+        const hadIds = new Set(state.messages.map((m) => m.id));
+        const fresh = silent ? messages.filter((m) => !hadIds.has(m.id)).length : 0;
+        state.messages = messages;
+        renderMessages();
+        renderDashboard();
+        if (fresh) toast(`${fresh} new message${fresh > 1 ? 's' : ''}`);
+    } catch (err) {
+        if (!silent) toast(err.message, 'error');
+    }
+}
+
+function setMessageFilter(filter) {
+    state.messageFilter = filter;
+    document.querySelectorAll('#message-filters .pill').forEach((p) => p.classList.toggle('active', p.dataset.filter === filter));
+    renderMessages();
+}
+
+document.querySelectorAll('#message-filters .pill').forEach((pill) => {
+    pill.addEventListener('click', () => setMessageFilter(pill.dataset.filter));
+});
+
+messageSearch.addEventListener('input', () => {
+    state.messageQuery = messageSearch.value.trim().toLowerCase();
+    renderMessages();
+});
+
+document.getElementById('refresh-messages-btn').addEventListener('click', async () => {
+    await loadMessages();
+    toast('Messages refreshed');
+});
+
+document.getElementById('mark-all-read-btn').addEventListener('click', async () => {
+    if (!state.messages.some((m) => !m.read)) return toast('Everything is already read');
+    try {
+        if (await fetchJson('/api/admin/messages/mark-all-read', { method: 'POST' }) === null) return;
+        state.messages.forEach((m) => { m.read = true; });
+        renderMessages();
+        renderDashboard();
+        toast('All messages marked as read');
+    } catch (err) {
+        toast(err.message, 'error');
+    }
+});
+
+function filteredMessages() {
+    return state.messages.filter((m) => {
+        if (state.messageFilter === 'unread' && m.read) return false;
+        if (state.messageFilter === 'read' && !m.read) return false;
+        if (!state.messageQuery) return true;
+        return [m.name, m.email, m.message].some((v) => String(v || '').toLowerCase().includes(state.messageQuery));
+    });
+}
+
+function renderMessages() {
+    const unread = state.messages.filter((m) => !m.read).length;
+    document.getElementById('count-all').textContent = state.messages.length;
+    document.getElementById('count-unread').textContent = unread;
+    document.getElementById('count-read').textContent = state.messages.length - unread;
+
+    const list = filteredMessages();
+    messagesList.innerHTML = '';
+
+    if (!list.length) {
+        const text = state.messages.length ? 'No messages match this filter.' : 'No messages yet.';
+        messagesList.innerHTML = `<tr><td colspan="6"><p class="empty-state"><i class="ri-inbox-line"></i>${text}</p></td></tr>`;
+    }
+
+    list.forEach((m) => {
+        const row = document.createElement('tr');
+        row.className = `${m.read ? 'is-read' : 'is-unread'} ${m.id === state.selectedMessageId ? 'selected' : ''}`;
+        row.innerHTML = `
+            <td class="col-status">${m.read ? '' : '<span class="unread-dot" title="Unread"></span>'}</td>
+            <td class="cell-name">${escapeHtml(m.name)}<span class="cell-sub">${escapeHtml(timeAgo(m.createdAt))} · ${escapeHtml(m.message)}</span></td>
+            <td class="hide-sm">${escapeHtml(m.email)}</td>
+            <td class="hide-md cell-preview">${escapeHtml(m.message)}</td>
+            <td class="hide-sm cell-date" title="${escapeAttr(formatDate(m.createdAt, true))}">${escapeHtml(timeAgo(m.createdAt))}</td>
+            <td class="col-actions">
+                <button class="icon-btn row-icon-btn toggle-read" title="${m.read ? 'Mark as unread' : 'Mark as read'}">
+                    <i class="${m.read ? 'ri-mail-unread-line' : 'ri-mail-open-line'}"></i>
+                </button>
+                <button class="icon-btn row-icon-btn delete-msg" title="Delete"><i class="ri-delete-bin-line"></i></button>
+            </td>
+        `;
+        row.addEventListener('click', () => openMessage(m.id));
+        row.querySelector('.toggle-read').addEventListener('click', (e) => { e.stopPropagation(); setMessageRead(m, !m.read); });
+        row.querySelector('.delete-msg').addEventListener('click', (e) => { e.stopPropagation(); deleteMessage(m); });
+        messagesList.appendChild(row);
+    });
+
+    renderMessageDetail();
+}
+
+function openMessage(id) {
+    state.selectedMessageId = id;
+    const m = state.messages.find((x) => x.id === id);
+    // Opening a message marks it read, like an email inbox.
+    if (m && !m.read) setMessageRead(m, true, { quiet: true });
+    else renderMessages();
+    if (window.innerWidth <= 1100) messageDetail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderMessageDetail() {
+    const m = state.messages.find((x) => x.id === state.selectedMessageId);
+    if (!m) {
+        state.selectedMessageId = null;
+        messageDetail.style.display = 'none';
+        messagesLayout.classList.remove('has-detail');
+        return;
+    }
+
+    const replyHref = `mailto:${encodeURIComponent(m.email)}?subject=${encodeURIComponent('Re: Your message on my portfolio')}`;
+    messageDetail.style.display = 'flex';
+    messagesLayout.classList.add('has-detail');
+    messageDetail.innerHTML = `
+        <div class="detail-head">
+            <span class="avatar">${escapeHtml(initials(m.name))}</span>
+            <div class="who">
+                <h3>${escapeHtml(m.name)}</h3>
+                <p>${escapeHtml(formatDate(m.createdAt, true))}</p>
+            </div>
+            <button class="icon-btn close-detail" aria-label="Close"><i class="ri-close-line"></i></button>
+        </div>
+        <div>
+            <p class="field-label">Email</p>
+            <div class="detail-email">
+                <a href="mailto:${escapeAttr(m.email)}">${escapeHtml(m.email)}</a>
+                <button class="icon-btn row-icon-btn copy-email" title="Copy email"><i class="ri-file-copy-line"></i></button>
+            </div>
+        </div>
+        <div>
+            <p class="field-label">Message</p>
+            <div class="detail-body">${escapeHtml(m.message)}</div>
+        </div>
+        <div class="detail-actions">
+            <a class="btn btn-primary" href="${escapeAttr(replyHref)}"><i class="ri-reply-line"></i> Reply by Email</a>
+            <button class="btn btn-secondary toggle-read">
+                <i class="${m.read ? 'ri-mail-unread-line' : 'ri-mail-open-line'}"></i> ${m.read ? 'Mark unread' : 'Mark read'}
+            </button>
+            <button class="btn btn-danger-soft delete-msg"><i class="ri-delete-bin-line"></i> Delete</button>
+        </div>
+    `;
+    messageDetail.querySelector('.close-detail').addEventListener('click', () => {
+        state.selectedMessageId = null;
+        renderMessages();
+    });
+    messageDetail.querySelector('.copy-email').addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(m.email);
+            toast('Email copied');
+        } catch {
+            toast('Could not copy email', 'error');
+        }
+    });
+    messageDetail.querySelector('.toggle-read').addEventListener('click', () => setMessageRead(m, !m.read));
+    messageDetail.querySelector('.delete-msg').addEventListener('click', () => deleteMessage(m));
+}
+
+async function setMessageRead(m, read, { quiet = false } = {}) {
+    const previous = m.read;
+    m.read = read;
+    renderMessages();
+    renderDashboard();
+    try {
+        if (await fetchJson(`/api/admin/messages/${m.id}`, jsonBody('PATCH', { read })) === null) return;
+        if (!quiet) toast(read ? 'Marked as read' : 'Marked as unread');
+    } catch (err) {
+        m.read = previous;
+        renderMessages();
+        renderDashboard();
+        toast(err.message, 'error');
+    }
+}
+
+async function deleteMessage(m) {
+    const ok = await confirmDialog({ title: 'Delete message?', text: `The message from "${m.name}" will be permanently deleted.` });
+    if (!ok) return;
+    try {
+        if (await fetchJson(`/api/admin/messages/${m.id}`, { method: 'DELETE' }) === null) return;
+        state.messages = state.messages.filter((x) => x.id !== m.id);
+        if (state.selectedMessageId === m.id) state.selectedMessageId = null;
+        renderMessages();
+        renderDashboard();
+        toast('Message deleted');
+    } catch (err) {
+        toast(err.message, 'error');
+    }
+}
+
+// PHOTOS / RESUME FILE
 
 const PHOTO_SLOT_FILES = { hero: 'shivam-hero.jpg', about: 'shivam-about.jpg', craft: 'shivam-craft.jpg' };
 const PHOTO_SLOT_VERSION_KEYS = { hero: 'heroPhotoVersion', about: 'aboutPhotoVersion', craft: 'craftPhotoVersion' };
@@ -71,15 +519,14 @@ document.querySelectorAll('.photo-slot-file').forEach((input) => {
         formData.append('photo', file);
 
         try {
-            const res = await fetch(`/api/admin/upload-photo/${slot}`, { method: 'POST', body: formData });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Upload failed');
-
-            status.textContent = 'Uploaded ✓';
+            if (await fetchJson(`/api/admin/upload-photo/${slot}`, { method: 'POST', body: formData }) === null) return;
+            status.textContent = '';
+            toast('Photo updated');
             if (slot === 'hero') reminder.style.display = 'block';
             loadSiteAssets();
         } catch (err) {
-            status.textContent = err.message;
+            status.textContent = '';
+            toast(err.message, 'error');
         } finally {
             e.target.value = '';
         }
@@ -89,20 +536,20 @@ document.querySelectorAll('.photo-slot-file').forEach((input) => {
 document.querySelectorAll('.photo-slot-delete').forEach((btn) => {
     btn.addEventListener('click', async () => {
         const slot = btn.dataset.slot;
-        if (!confirm('Reset this photo back to the default?')) return;
+        const ok = await confirmDialog({ title: 'Reset photo?', text: 'This photo will be reset back to the default.', okLabel: 'Reset' });
+        if (!ok) return;
 
         const status = document.getElementById(`photo-status-${slot}`);
         status.textContent = 'Resetting...';
 
         try {
-            const res = await fetch(`/api/admin/upload-photo/${slot}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Reset failed');
-
-            status.textContent = 'Reset ✓';
+            if (await fetchJson(`/api/admin/upload-photo/${slot}`, { method: 'DELETE' }) === null) return;
+            toast('Photo reset to default');
             loadSiteAssets();
         } catch (err) {
-            status.textContent = err.message;
+            toast(err.message, 'error');
+        } finally {
+            status.textContent = '';
         }
     });
 });
@@ -111,81 +558,26 @@ document.getElementById('resume-file').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const status = document.getElementById('resume-status');
     const reminder = document.getElementById('resume-linkedin-reminder');
     reminder.style.display = 'none';
-    status.textContent = 'Uploading...';
+    toast('Uploading resume…');
 
     const formData = new FormData();
     formData.append('resume', file);
 
     try {
-        const res = await fetch('/api/admin/upload-resume', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Upload failed');
-
-        status.textContent = 'Uploaded ✓';
+        if (await fetchJson('/api/admin/upload-resume', { method: 'POST', body: formData }) === null) return;
+        toast('Resume PDF updated');
         reminder.style.display = 'block';
         loadSiteAssets();
     } catch (err) {
-        status.textContent = err.message;
+        toast(err.message, 'error');
     } finally {
         e.target.value = '';
     }
 });
 
-function showLogin(message) {
-    loginScreen.style.display = 'flex';
-    adminScreen.style.display = 'none';
-    if (message) loginError.textContent = message;
-}
-
-// Wraps fetch for admin-only endpoints: if the session cookie is missing or
-// expired, the API returns 401 - without this check, code that assumes the
-// response body is always the expected data (an array, an object) would
-// silently misread {"error":"Unauthorized"} as "no data" instead of
-// recognizing the session dropped and prompting a fresh login.
-async function fetchJson(url, options) {
-    const res = await fetch(url, options);
-    if (res.status === 401) {
-        showLogin('Your session expired - please log in again.');
-        return null;
-    }
-    return res.json();
-}
-
-async function checkSession() {
-    const res = await fetch('/api/admin/session');
-    const data = await res.json();
-    if (data.isAdmin) showAdmin();
-    else showLogin();
-}
-
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    loginError.textContent = '';
-    const username = document.getElementById('login-username').value;
-    const password = document.getElementById('login-password').value;
-
-    const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-    });
-
-    if (res.ok) {
-        loginForm.reset();
-        showAdmin();
-    } else {
-        const data = await res.json().catch(() => ({}));
-        loginError.textContent = data.error || 'Login failed';
-    }
-});
-
-logoutBtn.addEventListener('click', async () => {
-    await fetch('/api/admin/logout', { method: 'POST' });
-    showLogin();
-});
+// PROJECTS
 
 function resetForm() {
     projectIdInput.value = '';
@@ -219,10 +611,8 @@ projectImageFileInput.addEventListener('change', async () => {
     formData.append('image', file);
 
     try {
-        const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Upload failed');
-
+        const data = await fetchJson('/api/admin/upload', { method: 'POST', body: formData });
+        if (!data) return;
         projectImageInput.value = data.path;
         updateImagePreview();
         uploadStatus.textContent = 'Uploaded ✓';
@@ -237,51 +627,37 @@ cancelEditBtn.addEventListener('click', resetForm);
 
 async function loadProjects() {
     const res = await fetch('/api/projects');
-    const projects = await res.json();
-    renderProjects(projects);
+    state.projects = await res.json();
+    renderProjects(state.projects);
+    renderDashboard();
 }
 
 function renderProjects(projects) {
     projectsList.innerHTML = '';
 
     if (!projects.length) {
-        projectsList.innerHTML = '<p class="empty-state">No projects yet — add your first one below.</p>';
+        projectsList.innerHTML = '<p class="empty-state"><i class="ri-briefcase-line"></i>No projects yet — add your first one below.</p>';
         return;
     }
 
     projects.forEach((p) => {
         const row = document.createElement('div');
-        row.className = 'project-row';
+        row.className = 'item-row';
         row.innerHTML = `
-            <img src="${resolveImageSrc(p.image)}" alt="">
+            <img src="${escapeAttr(resolveImageSrc(p.image))}" alt="">
             <div class="info">
                 <strong>${escapeHtml(p.title)}</strong>
-                <span>${escapeHtml(p.url)}</span>
+                <span>${escapeHtml(p.url || 'Private / not public')}</span>
             </div>
             <div class="row-actions">
-                <button class="edit-btn">Edit</button>
-                <button class="delete-btn">Delete</button>
+                <button class="btn btn-secondary btn-sm edit-btn"><i class="ri-edit-line"></i> Edit</button>
+                <button class="btn btn-danger-soft btn-sm delete-btn"><i class="ri-delete-bin-line"></i> Delete</button>
             </div>
         `;
         row.querySelector('.edit-btn').addEventListener('click', () => startEdit(p));
         row.querySelector('.delete-btn').addEventListener('click', () => deleteProject(p));
         projectsList.appendChild(row);
     });
-}
-
-function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-// Uploads now return either a site-relative path (images/abc.jpg, local disk
-// mode) or a full Supabase Storage URL (https://..., when Supabase is
-// configured). Blindly prepending "/" broke the second case - it turned
-// "https://xyz.supabase.co/..." into "/https://xyz.supabase.co/...", an
-// invalid path on our own origin.
-function resolveImageSrc(image) {
-    return /^https?:\/\//.test(image) ? image : `/${image}`;
 }
 
 function startEdit(p) {
@@ -291,7 +667,7 @@ function startEdit(p) {
     projectImageInput.value = p.image;
     formTitle.textContent = 'Edit Project';
     saveBtn.textContent = 'Save Changes';
-    cancelEditBtn.style.display = 'inline-block';
+    cancelEditBtn.style.display = 'inline-flex';
     formError.textContent = '';
     uploadStatus.textContent = '';
     updateImagePreview();
@@ -299,12 +675,14 @@ function startEdit(p) {
 }
 
 async function deleteProject(p) {
-    if (!confirm(`Delete "${p.title}"? This can't be undone.`)) return;
-    const res = await fetch(`/api/admin/projects/${p.id}`, { method: 'DELETE' });
-    if (res.ok) {
+    const ok = await confirmDialog({ title: 'Delete project?', text: `"${p.title}" will be removed from your portfolio. This can't be undone.` });
+    if (!ok) return;
+    try {
+        if (await fetchJson(`/api/admin/projects/${p.id}`, { method: 'DELETE' }) === null) return;
+        toast('Project deleted');
         loadProjects();
-    } else {
-        alert('Failed to delete project.');
+    } catch (err) {
+        toast(err.message, 'error');
     }
 }
 
@@ -320,64 +698,20 @@ projectForm.addEventListener('submit', async (e) => {
 
     const id = projectIdInput.value;
     const isEdit = Boolean(id);
+    saveBtn.disabled = true;
 
-    const res = await fetch(isEdit ? `/api/admin/projects/${id}` : '/api/admin/projects', {
-        method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-    });
-
-    if (res.ok) {
+    try {
+        const data = await fetchJson(isEdit ? `/api/admin/projects/${id}` : '/api/admin/projects', jsonBody(isEdit ? 'PUT' : 'POST', payload));
+        if (!data) return;
+        toast(isEdit ? 'Project updated' : 'Project added');
         resetForm();
         loadProjects();
-    } else {
-        const data = await res.json().catch(() => ({}));
-        formError.textContent = data.error || 'Something went wrong.';
+    } catch (err) {
+        formError.textContent = err.message;
+    } finally {
+        saveBtn.disabled = false;
     }
 });
-
-async function loadMessages() {
-    const messages = await fetchJson('/api/admin/messages');
-    if (messages) renderMessages(messages);
-}
-
-function renderMessages(messages) {
-    messagesList.innerHTML = '';
-
-    if (!messages.length) {
-        messagesList.innerHTML = '<p class="empty-state">No messages yet.</p>';
-        return;
-    }
-
-    messages.forEach((m) => {
-        const row = document.createElement('div');
-        row.className = 'message-row';
-        const date = new Date(m.createdAt).toLocaleString();
-        row.innerHTML = `
-            <div class="message-top">
-                <div class="message-from">
-                    <strong>${escapeHtml(m.name)}</strong>
-                    <a href="mailto:${escapeHtml(m.email)}">${escapeHtml(m.email)}</a>
-                </div>
-                <span class="message-date">${escapeHtml(date)}</span>
-            </div>
-            <p class="message-body">${escapeHtml(m.message)}</p>
-            <button class="delete-btn">Delete</button>
-        `;
-        row.querySelector('.delete-btn').addEventListener('click', () => deleteMessage(m));
-        messagesList.appendChild(row);
-    });
-}
-
-async function deleteMessage(m) {
-    if (!confirm(`Delete message from "${m.name}"?`)) return;
-    const res = await fetch(`/api/admin/messages/${m.id}`, { method: 'DELETE' });
-    if (res.ok) {
-        loadMessages();
-    } else {
-        alert('Failed to delete message.');
-    }
-}
 
 // CERTIFICATES
 
@@ -454,10 +788,8 @@ certImageFileInput.addEventListener('change', async () => {
         const formData = new FormData();
         formData.append('image', uploadFile);
 
-        const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Upload failed');
-
+        const data = await fetchJson('/api/admin/upload', { method: 'POST', body: formData });
+        if (!data) return;
         certImageInput.value = data.path;
         updateCertImagePreview();
         certUploadStatus.textContent = 'Uploaded ✓';
@@ -472,30 +804,31 @@ certCancelEditBtn.addEventListener('click', resetCertForm);
 
 async function loadCertificates() {
     const res = await fetch('/api/certificates');
-    const certificates = await res.json();
-    renderCertificates(certificates);
+    state.certificates = await res.json();
+    renderCertificates(state.certificates);
+    renderDashboard();
 }
 
 function renderCertificates(certificates) {
     certificatesList.innerHTML = '';
 
     if (!certificates.length) {
-        certificatesList.innerHTML = '<p class="empty-state">No certificates yet — add your first one below.</p>';
+        certificatesList.innerHTML = '<p class="empty-state"><i class="ri-award-line"></i>No certificates yet — add your first one below.</p>';
         return;
     }
 
     certificates.forEach((c) => {
         const row = document.createElement('div');
-        row.className = 'project-row';
+        row.className = 'item-row';
         row.innerHTML = `
-            <img src="${resolveImageSrc(c.image)}" alt="">
+            <img src="${escapeAttr(resolveImageSrc(c.image))}" alt="">
             <div class="info">
                 <strong>${escapeHtml(c.title)}</strong>
                 <span>${escapeHtml(c.issuer || '')}</span>
             </div>
             <div class="row-actions">
-                <button class="edit-btn">Edit</button>
-                <button class="delete-btn">Delete</button>
+                <button class="btn btn-secondary btn-sm edit-btn"><i class="ri-edit-line"></i> Edit</button>
+                <button class="btn btn-danger-soft btn-sm delete-btn"><i class="ri-delete-bin-line"></i> Delete</button>
             </div>
         `;
         row.querySelector('.edit-btn').addEventListener('click', () => startEditCert(c));
@@ -511,7 +844,7 @@ function startEditCert(c) {
     certImageInput.value = c.image;
     certFormTitle.textContent = 'Edit Certificate';
     certSaveBtn.textContent = 'Save Changes';
-    certCancelEditBtn.style.display = 'inline-block';
+    certCancelEditBtn.style.display = 'inline-flex';
     certFormError.textContent = '';
     certUploadStatus.textContent = '';
     updateCertImagePreview();
@@ -519,12 +852,14 @@ function startEditCert(c) {
 }
 
 async function deleteCertificate(c) {
-    if (!confirm(`Delete "${c.title}"? This can't be undone.`)) return;
-    const res = await fetch(`/api/admin/certificates/${c.id}`, { method: 'DELETE' });
-    if (res.ok) {
+    const ok = await confirmDialog({ title: 'Delete certificate?', text: `"${c.title}" will be removed from your portfolio. This can't be undone.` });
+    if (!ok) return;
+    try {
+        if (await fetchJson(`/api/admin/certificates/${c.id}`, { method: 'DELETE' }) === null) return;
+        toast('Certificate deleted');
         loadCertificates();
-    } else {
-        alert('Failed to delete certificate.');
+    } catch (err) {
+        toast(err.message, 'error');
     }
 }
 
@@ -540,19 +875,18 @@ certificateForm.addEventListener('submit', async (e) => {
 
     const id = certIdInput.value;
     const isEdit = Boolean(id);
+    certSaveBtn.disabled = true;
 
-    const res = await fetch(isEdit ? `/api/admin/certificates/${id}` : '/api/admin/certificates', {
-        method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-    });
-
-    if (res.ok) {
+    try {
+        const data = await fetchJson(isEdit ? `/api/admin/certificates/${id}` : '/api/admin/certificates', jsonBody(isEdit ? 'PUT' : 'POST', payload));
+        if (!data) return;
+        toast(isEdit ? 'Certificate updated' : 'Certificate added');
         resetCertForm();
         loadCertificates();
-    } else {
-        const data = await res.json().catch(() => ({}));
-        certFormError.textContent = data.error || 'Something went wrong.';
+    } catch (err) {
+        certFormError.textContent = err.message;
+    } finally {
+        certSaveBtn.disabled = false;
     }
 });
 
@@ -563,6 +897,7 @@ const educationRowsEl = document.getElementById('education-rows');
 const resumeForm = document.getElementById('resume-form');
 const resumeStatus = document.getElementById('resume-status');
 const resumeFormError = document.getElementById('resume-form-error');
+const resumeSaveBtn = document.getElementById('resume-save-btn');
 
 function experienceRowHtml(exp = {}) {
     const row = document.createElement('div');
@@ -574,7 +909,7 @@ function experienceRowHtml(exp = {}) {
         </div>
         <input type="text" class="exp-duration" placeholder="Duration (e.g. 07/2025 - Present)" value="${escapeAttr(exp.duration)}" />
         <textarea class="exp-description" placeholder="Description" rows="3">${escapeHtml(exp.description || '')}</textarea>
-        <button type="button" class="remove-entry-btn">Remove</button>
+        <button type="button" class="btn btn-danger-soft btn-sm remove-entry-btn"><i class="ri-delete-bin-line"></i> Remove</button>
     `;
     row.querySelector('.remove-entry-btn').addEventListener('click', () => row.remove());
     return row;
@@ -590,14 +925,10 @@ function educationRowHtml(edu = {}) {
         </div>
         <input type="text" class="edu-institution" placeholder="Institution" value="${escapeAttr(edu.institution)}" />
         <input type="text" class="edu-score" placeholder="Score / Percentage" value="${escapeAttr(edu.score)}" />
-        <button type="button" class="remove-entry-btn">Remove</button>
+        <button type="button" class="btn btn-danger-soft btn-sm remove-entry-btn"><i class="ri-delete-bin-line"></i> Remove</button>
     `;
     row.querySelector('.remove-entry-btn').addEventListener('click', () => row.remove());
     return row;
-}
-
-function escapeAttr(str) {
-    return escapeHtml(str || '').replace(/"/g, '&quot;');
 }
 
 document.getElementById('add-experience-btn').addEventListener('click', () => {
@@ -609,7 +940,12 @@ document.getElementById('add-education-btn').addEventListener('click', () => {
 });
 
 async function loadResumeData() {
-    const data = await fetchJson('/api/admin/resume-data');
+    let data;
+    try {
+        data = await fetchJson('/api/admin/resume-data');
+    } catch (err) {
+        return toast(err.message, 'error');
+    }
     if (!data) return;
 
     document.getElementById('resume-name').value = data.name || '';
@@ -648,7 +984,8 @@ function collectEducation() {
 resumeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     resumeFormError.textContent = '';
-    resumeStatus.textContent = 'Saving...';
+    resumeStatus.textContent = 'Generating PDF...';
+    resumeSaveBtn.disabled = true;
     document.getElementById('resume-linkedin-reminder').style.display = 'none';
 
     const payload = {
@@ -664,20 +1001,15 @@ resumeForm.addEventListener('submit', async (e) => {
     };
 
     try {
-        const res = await fetch('/api/admin/resume-data', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to save');
-
-        resumeStatus.textContent = 'Saved ✓';
+        if (await fetchJson('/api/admin/resume-data', jsonBody('PUT', payload)) === null) return;
+        toast('Resume saved and PDF generated');
         document.getElementById('resume-linkedin-reminder').style.display = 'block';
         loadSiteAssets();
     } catch (err) {
         resumeFormError.textContent = err.message;
+    } finally {
         resumeStatus.textContent = '';
+        resumeSaveBtn.disabled = false;
     }
 });
 
