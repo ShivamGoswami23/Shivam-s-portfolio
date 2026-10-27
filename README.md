@@ -12,7 +12,7 @@ A personal portfolio for **Shivam Goswami**, a .NET Developer. The public site i
 |---|---|---|
 | **Mintex Care** | Home Care Services Website | [mintexcare.com](https://mintexcare.com/) |
 | **Mintex Staffing** | Staffing & Recruitment Platform | [mintexstaffing.com](https://www.mintexstaffing.com/) |
-| **PLENTYCART** | E-commerce Platform (ASP.NET MVC, React.js, Next.js, SQL Server) | Internal / not yet public |
+| **PLENTYCART** | E-commerce Platform (ASP.NET MVC, React.js, Next.js, SQL Server) | [plentycart-frontend-production.up.railway.app](https://plentycart-frontend-production.up.railway.app/) |
 
 ---
 
@@ -24,7 +24,7 @@ A personal portfolio for **Shivam Goswami**, a .NET Developer. The public site i
 - **Skills Stack** — categorized across Frontend, Backend/.NET, Database, Tools, and Engineering Practices.
 - **Education Section** — Bachelor's and Master's degrees with institution and score.
 - **Admin Panel** (`/admin`, login-protected) —
-  - Add / edit / delete portfolio projects, with image upload
+  - Add / edit / delete portfolio projects, with image upload — or an automatic screenshot of the project's live URL (taken whenever the URL changes, or on demand with "Refresh image")
   - Edit resume content field-by-field; a PDF is auto-generated and published site-wide on save
   - Upload a new profile photo — updates everywhere on the site instantly
   - View contact form submissions, with an email notification sent automatically

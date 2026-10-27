@@ -8,37 +8,99 @@
     "HTML",
     "CSS",
     "JavaScript",
+    "TypeScript",
     "React",
+    "Next.js",
+    ".NET",
     "SQL",
     "SQL Server",
-    ".NET"
+    "Tailwind CSS",
+    "Supabase",
+    "Firebase",
+    "Claude Code"
   ],
   "experience": [
     {
       "company": "Mintex Tech",
       "role": ".Net Developer Intern",
       "duration": "01/2025 - 07/2025",
-      "description": "Developed a .NET-based college project from scratch and learned to integrate components from older projects into a unified system. Gained practical knowledge of performance tuning and basic security best practices in .NET applications. Used Microsoft Office Word to create detailed documentation of a legacy project integration, covering all technical and functional aspects for better team collaboration.\nTools & Technologies: .NET (C#), ASP.NET Core, SQL Server, Visual Studio 2020, Microsoft Office Word."
+      "description": "Developed a .NET-based college project from scratch and learned to integrate components from older projects into a unified system. Gained practical knowledge of performance tuning and basic security best practices in .NET applications. Used Microsoft Office Word to create detailed documentation of a legacy project integration, covering all technical and functional aspects for better team collaboration.\nTools & Technologies: .NET (C#), ASP.NET Core, SQL Server, Visual Studio 2020, Microsoft Office Word.",
+      "projects": [],
+      "website": ""
     },
     {
       "company": "Mintex Tech",
-      "role": ".NET Developer",
+      "role": "Software Developer",
       "duration": "07/2025 - Present",
-      "description": "Project: PLENTYCART (E-commerce Platform)\nContributed to the development of the PLENTYCART application built with ASP.NET MVC, React.js, Next.js, and SQL Server (SSMS). Implemented UI enhancements and responsive designs to improve user experience. Modified existing modules and resolved bugs to ensure smooth functionality. Assisted in integrating frontend components with backend APIs. Worked with SQL Server for basic database operations, queries, and data updates. Actively learned and applied industry best practices during the development lifecycle. Collaborated with team members in a professional development environment."
+      "description": "",
+      "projects": [
+        {
+          "name": "PLENTYCART (E-commerce Platform)",
+          "url": "",
+          "bullets": [
+            "Contributed to the development of the PLENTYCART application built with ASP.NET MVC, React.js, Next.js, and SQL Server (SSMS).",
+            "Implemented UI enhancements and responsive designs to improve user experience.",
+            "Modified existing modules and resolved bugs to ensure smooth functionality.",
+            "Assisted in integrating frontend components with backend APIs.",
+            "Worked with SQL Server for basic database operations, queries, and data updates."
+          ]
+        },
+        {
+          "name": "Mintex Staffing (Staffing & Recruitment Platform)",
+          "url": "www.mintexstaffing.com",
+          "bullets": [
+            "Built the company's staffing website end-to-end with Next.js (App Router), TypeScript and Tailwind CSS, deployed on Vercel.",
+            "Integrated the Ceipal ATS API to show live job openings, accept applications with resumes, and power a client portal for tracking jobs, submissions and placements.",
+            "Developed an admin panel on Supabase (PostgreSQL + Storage) to manage case studies, blog insights (TipTap rich-text editor), industries, team members, site images, messages and hiring inquiries.",
+            "Created AI-powered tools with Google Gemini, including an interview-kit generator and a skills gap analysis.",
+            "Added a hiring cost calculator with saved and emailed results (Nodemailer, PDFKit), job alerts, and SEO pages kept fresh with scheduled cron jobs and IndexNow.",
+            "Used Claude Code (AI coding assistant) throughout development to plan, build, debug and refactor features faster, reviewing and testing every change."
+          ]
+        },
+        {
+          "name": "Mintex Care (Home Care Services Website)",
+          "url": "www.mintexcare.com",
+          "bullets": [
+            "Built the MintexCare website with React, TypeScript, Vite, Tailwind CSS and shadcn/ui, hosted on Firebase.",
+            "Developed responsive pages for services, service areas, careers, facility staffing, free consultation, blog and resources, with Framer Motion animations.",
+            "Built an admin dashboard on Firebase Firestore to manage testimonials, team members, gallery, site images (with an in-browser crop tool), job positions, pricing and contact details.",
+            "Implemented contact, consultation and job-application forms with resume upload; submissions are tracked in the admin panel and emailed through a Google Apps Script + Gmail integration.",
+            "Built and redesigned the site with Claude Code (AI coding assistant) to speed up development, from new pages and admin features to bug fixes and image tooling."
+          ]
+        }
+      ],
+      "website": "www.mintextech.com"
+    }
+  ],
+  "collegeProjectsDuration": "July 2020 - Jan 2022",
+  "collegeProjects": [
+    {
+      "name": "Grocery Store (Sem-1)",
+      "tech": "HTML, CSS, JS, PHP"
+    },
+    {
+      "name": "Foody (Sem-3)",
+      "tech": "SQL Server & .Net Core & Bootstrap, HTML, CSS, JS"
     }
   ],
   "education": [
     {
       "degree": "Bachelor Of Computer Application",
-      "institution": "Saurashtra University, Parangat College, Halvad",
+      "institution": "Saurashtra University\nParangat College\nHalvad",
       "duration": "2020 - 2023",
       "score": "74.72%"
     },
     {
       "degree": "Master Of Computer Application",
-      "institution": "Kadi Sarva Vishwavidyalaya, LDRP Institute of Technology & Research",
+      "institution": "Kadi Sarva Vishwavidyalaya\nLDRP Institute of Technology &\nResearch",
       "duration": "2023 - 2025",
       "score": "72.10%"
+    }
+  ],
+  "extracurricular": [
+    {
+      "title": "Taekwondo",
+      "detail": "District level Champion, Silver Medalist"
     }
   ]
 }

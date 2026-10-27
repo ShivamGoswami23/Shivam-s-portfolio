@@ -10,6 +10,7 @@
           "style.css",
           "script.js",
           "*.ttf",
+          "fonts/**",
           "Shivam-Goswami-Resume.pdf",
           "admin/**",
           "images/**",

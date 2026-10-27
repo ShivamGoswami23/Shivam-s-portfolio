@@ -3,18 +3,18 @@
     "id": "p1mintexcare",
     "title": "Mintex Care",
     "url": "https://mintexcare.com/",
-    "image": "images/mintexcare.png"
+    "image": "images/62eec4b87d0fbe45.jpg"
   },
   {
     "id": "p2mintexstaffing",
     "title": "Mintex Staffing",
     "url": "https://www.mintexstaffing.com/",
-    "image": "images/mintexstaffing.png"
+    "image": "images/1e699e165a6713d2.jpg"
   },
   {
     "id": "p3plentycart",
     "title": "PLENTYCART (E-commerce)",
-    "url": "",
-    "image": "images/plentycart.svg"
+    "url": "https://plentycart-frontend-production.up.railway.app/",
+    "image": "images/867bb998ab67a5fa.jpg"
   }
 ]

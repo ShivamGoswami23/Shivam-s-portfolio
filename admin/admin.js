@@ -502,6 +502,7 @@ async function loadSiteAssets() {
         document.getElementById(`current-photo-${slot}`).src = `/images/${PHOTO_SLOT_FILES[slot]}?v=${version}`;
     }
     document.getElementById('current-resume').href = `/Shivam-Goswami-Resume.pdf?v=${site.resumeVersion}`;
+    document.getElementById('download-resume').href = `/Shivam-Goswami-Resume.pdf?v=${site.resumeVersion}&download=1`;
 }
 
 document.querySelectorAll('.photo-slot-file').forEach((input) => {
@@ -580,6 +581,10 @@ document.getElementById('resume-file').addEventListener('change', async (e) => {
 // PROJECTS
 
 function resetForm() {
+    captureToken++; // ignore any screenshot still in flight for the old form
+    projectUrlOnLoad = '';
+    fetchImageBtn.disabled = false;
+    saveBtn.disabled = false;
     projectIdInput.value = '';
     projectForm.reset();
     formTitle.textContent = 'Add New Project';
@@ -625,6 +630,157 @@ projectImageFileInput.addEventListener('change', async () => {
 
 cancelEditBtn.addEventListener('click', resetForm);
 
+// SITE SCREENSHOTS
+//
+// A screenshot service renders the live homepage in a real browser. That can
+// take ~10s - longer than a Vercel Hobby function may run - so the browser
+// waits for the screenshot here, and the server then just downloads the
+// (now cached) image, resizes and stores it.
+//
+// 1. thum.io  - waits a few seconds so lazy-loaded hero images are in.
+// 2. WordPress mShots - renders in the background; polled until ready.
+// 3. Microlink - last resort (free plan: 50 screenshots/day).
+// The site's og:image is deliberately NOT used as a fallback: on sites like
+// Mintex Care/Staffing it's just the logo. If every service fails, the
+// current image is kept.
+
+function isHttpUrl(value) {
+    try {
+        return /^https?:$/.test(new URL(value).protocol);
+    } catch {
+        return false;
+    }
+}
+
+// Loading it as an <img> makes thum.io render and cache it without needing
+// CORS; resolves once the screenshot actually exists.
+function preloadImage(src, timeoutMs) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.referrerPolicy = 'no-referrer';
+        const timer = setTimeout(() => { img.src = ''; reject(new Error('timeout')); }, timeoutMs);
+        img.onload = () => { clearTimeout(timer); resolve(img); };
+        img.onerror = () => { clearTimeout(timer); reject(new Error('failed')); };
+        img.src = src;
+    });
+}
+
+async function thumioScreenshot(pageUrl) {
+    // maxAge/1 = reuse a cached render for at most an hour, so "Refresh image"
+    // really shows the site as it is now.
+    const src = `https://image.thum.io/get/width/1440/crop/900/viewportWidth/1440/wait/4/maxAge/1/noanimate/${pageUrl}`;
+    const img = await preloadImage(src, 60000);
+    if (img.naturalWidth < 600) throw new Error('bad screenshot');
+    return src;
+}
+
+// mShots answers with a small "generating…" placeholder until the real
+// 1440px render is ready, so poll (cache-busted) until we get full width.
+async function mshotsScreenshot(pageUrl) {
+    const base = `https://s0.wp.com/mshots/v1/${encodeURIComponent(pageUrl)}?w=1440&h=900`;
+    for (let attempt = 0; attempt < 12; attempt++) {
+        const src = `${base}&r=${Date.now()}`;
+        try {
+            const img = await preloadImage(src, 20000);
+            if (img.naturalWidth >= 1200) return src;
+        } catch {
+            // placeholder or transient error - keep polling
+        }
+        await new Promise((r) => setTimeout(r, 4000));
+    }
+    throw new Error('mShots timed out');
+}
+
+async function microlinkScreenshot(pageUrl) {
+    const params = new URLSearchParams({
+        url: pageUrl,
+        screenshot: 'true',
+        meta: 'false',
+        'viewport.width': '1440',
+        'viewport.height': '900',
+        waitForTimeout: '3000',
+    });
+    const res = await fetch(`https://api.microlink.io/?${params}`, { signal: AbortSignal.timeout(45000) });
+    const data = await res.json();
+    if (data.status !== 'success' || !data.data?.screenshot?.url) throw new Error(data.message || 'failed');
+    return data.data.screenshot.url;
+}
+
+async function captureSiteImage(pageUrl) {
+    for (const take of [thumioScreenshot, mshotsScreenshot, microlinkScreenshot]) {
+        let imageUrl;
+        try {
+            imageUrl = await take(pageUrl);
+        } catch {
+            continue; // this service failed - try the next one
+        }
+        try {
+            const result = await fetchJson('/api/admin/projects/import-image', jsonBody('POST', { imageUrl }));
+            return result && result.path;
+        } catch {
+            // download/resize failed for this one - try the next service
+        }
+    }
+    throw new Error('the screenshot services are busy right now. Your current image was kept - try again in a few minutes, or upload one.');
+}
+
+const fetchImageBtn = document.getElementById('project-fetch-image');
+let projectUrlOnLoad = '';
+let captureToken = 0;
+
+async function fetchProjectImageFromUrl({ auto = false } = {}) {
+    const url = projectUrlInput.value.trim();
+    if (!isHttpUrl(url)) {
+        if (!auto) uploadStatus.textContent = 'Enter a valid Live URL (https://...) first.';
+        return;
+    }
+
+    // Only the latest capture wins if the URL is changed again mid-fetch.
+    const token = ++captureToken;
+    uploadStatus.textContent = 'Taking a screenshot of the site… (this can take ~15 seconds)';
+    fetchImageBtn.disabled = true;
+    saveBtn.disabled = true;
+
+    try {
+        const path = await captureSiteImage(url);
+        if (token !== captureToken || !path) return;
+        projectImageInput.value = path;
+        updateImagePreview();
+        uploadStatus.textContent = 'Screenshot captured ✓';
+    } catch (err) {
+        if (token === captureToken) uploadStatus.textContent = 'Could not capture the site: ' + err.message;
+    } finally {
+        if (token === captureToken) {
+            fetchImageBtn.disabled = false;
+            saveBtn.disabled = false;
+        }
+    }
+}
+
+fetchImageBtn.addEventListener('click', () => fetchProjectImageFromUrl());
+
+projectUrlInput.addEventListener('change', () => {
+    const url = projectUrlInput.value.trim();
+    if (url && url !== projectUrlOnLoad) fetchProjectImageFromUrl({ auto: true });
+});
+
+async function refreshProjectImage(p, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ri-loader-4-line"></i> Capturing…';
+    try {
+        const path = await captureSiteImage(p.url);
+        if (!path) return;
+        if (await fetchJson(`/api/admin/projects/${p.id}`, jsonBody('PUT', { image: path })) === null) return;
+        toast(`"${p.title}" image updated`);
+        loadProjects();
+    } catch (err) {
+        toast('Could not capture the site: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ri-camera-lens-line"></i> Refresh image';
+    }
+}
+
 async function loadProjects() {
     const res = await fetch('/api/projects');
     state.projects = await res.json();
@@ -650,10 +806,13 @@ function renderProjects(projects) {
                 <span>${escapeHtml(p.url || 'Private / not public')}</span>
             </div>
             <div class="row-actions">
+                ${p.url ? '<button class="btn btn-secondary btn-sm refresh-img-btn" title="Take a fresh screenshot of the live site"><i class="ri-camera-lens-line"></i> Refresh image</button>' : ''}
                 <button class="btn btn-secondary btn-sm edit-btn"><i class="ri-edit-line"></i> Edit</button>
                 <button class="btn btn-danger-soft btn-sm delete-btn"><i class="ri-delete-bin-line"></i> Delete</button>
             </div>
         `;
+        const refreshBtn = row.querySelector('.refresh-img-btn');
+        if (refreshBtn) refreshBtn.addEventListener('click', () => refreshProjectImage(p, refreshBtn));
         row.querySelector('.edit-btn').addEventListener('click', () => startEdit(p));
         row.querySelector('.delete-btn').addEventListener('click', () => deleteProject(p));
         projectsList.appendChild(row);
@@ -661,6 +820,10 @@ function renderProjects(projects) {
 }
 
 function startEdit(p) {
+    captureToken++;
+    projectUrlOnLoad = p.url || '';
+    fetchImageBtn.disabled = false;
+    saveBtn.disabled = false;
     projectIdInput.value = p.id;
     projectTitleInput.value = p.title;
     projectUrlInput.value = p.url;
@@ -899,36 +1062,78 @@ const resumeStatus = document.getElementById('resume-status');
 const resumeFormError = document.getElementById('resume-form-error');
 const resumeSaveBtn = document.getElementById('resume-save-btn');
 
-function experienceRowHtml(exp = {}) {
+const collegeProjectRowsEl = document.getElementById('college-project-rows');
+const extracurricularRowsEl = document.getElementById('extracurricular-rows');
+
+// A removable card; `fields` is the inner HTML, `label` names the remove button.
+function entryRow(className, fields, label = 'Remove') {
     const row = document.createElement('div');
-    row.className = 'entry-row';
-    row.innerHTML = `
+    row.className = `entry-row ${className}`;
+    row.innerHTML = `${fields}<button type="button" class="btn btn-danger-soft btn-sm remove-entry-btn"><i class="ri-delete-bin-line"></i> ${label}</button>`;
+    row.querySelector(':scope > .remove-entry-btn').addEventListener('click', () => row.remove());
+    return row;
+}
+
+function projectRowHtml(p = {}) {
+    return entryRow('project-entry', `
+        <div class="entry-row-top">
+            <input type="text" class="proj-name" placeholder="Project name (e.g. Mintex Care (Home Care Website))" value="${escapeAttr(p.name)}" />
+            <input type="text" class="proj-url" placeholder="Website (optional, e.g. www.mintexcare.com)" value="${escapeAttr(p.url)}" />
+        </div>
+        <textarea class="proj-bullets" rows="5" placeholder="One bullet point per line">${escapeHtml((p.bullets || []).join('\n'))}</textarea>
+    `, 'Remove project');
+}
+
+function experienceRowHtml(exp = {}) {
+    const row = entryRow('experience-entry', `
         <div class="entry-row-top">
             <input type="text" class="exp-company" placeholder="Company" value="${escapeAttr(exp.company)}" />
             <input type="text" class="exp-role" placeholder="Role" value="${escapeAttr(exp.role)}" />
         </div>
         <input type="text" class="exp-duration" placeholder="Duration (e.g. 07/2025 - Present)" value="${escapeAttr(exp.duration)}" />
-        <textarea class="exp-description" placeholder="Description" rows="3">${escapeHtml(exp.description || '')}</textarea>
-        <button type="button" class="btn btn-danger-soft btn-sm remove-entry-btn"><i class="ri-delete-bin-line"></i> Remove</button>
-    `;
-    row.querySelector('.remove-entry-btn').addEventListener('click', () => row.remove());
+        <textarea class="exp-description" placeholder="Description (optional - each line becomes its own paragraph)" rows="3">${escapeHtml(exp.description || '')}</textarea>
+        <div class="sub-section">
+            <div class="resume-subsection-header">
+                <h4>Projects</h4>
+                <button type="button" class="btn btn-secondary btn-sm add-project-btn"><i class="ri-add-line"></i> Add Project</button>
+            </div>
+            <div class="project-rows sub-rows"></div>
+        </div>
+        <input type="text" class="exp-website" placeholder="Company website (optional, e.g. www.mintextech.com)" value="${escapeAttr(exp.website)}" />
+    `, 'Remove experience');
+    const projectRows = row.querySelector('.project-rows');
+    (exp.projects || []).forEach((p) => projectRows.appendChild(projectRowHtml(p)));
+    row.querySelector('.add-project-btn').addEventListener('click', () => projectRows.appendChild(projectRowHtml()));
     return row;
 }
 
 function educationRowHtml(edu = {}) {
-    const row = document.createElement('div');
-    row.className = 'entry-row';
-    row.innerHTML = `
+    return entryRow('education-entry', `
         <div class="entry-row-top">
             <input type="text" class="edu-degree" placeholder="Degree" value="${escapeAttr(edu.degree)}" />
             <input type="text" class="edu-duration" placeholder="Duration (e.g. 2023 - 2025)" value="${escapeAttr(edu.duration)}" />
         </div>
-        <input type="text" class="edu-institution" placeholder="Institution" value="${escapeAttr(edu.institution)}" />
+        <textarea class="edu-institution" rows="3" placeholder="University / college - one line per row, exactly as it should appear">${escapeHtml(edu.institution || '')}</textarea>
         <input type="text" class="edu-score" placeholder="Score / Percentage" value="${escapeAttr(edu.score)}" />
-        <button type="button" class="btn btn-danger-soft btn-sm remove-entry-btn"><i class="ri-delete-bin-line"></i> Remove</button>
-    `;
-    row.querySelector('.remove-entry-btn').addEventListener('click', () => row.remove());
-    return row;
+    `);
+}
+
+function collegeProjectRowHtml(p = {}) {
+    return entryRow('college-entry', `
+        <div class="entry-row-top">
+            <input type="text" class="cp-name" placeholder="Project name (e.g. Foody (Sem-3))" value="${escapeAttr(p.name)}" />
+            <input type="text" class="cp-tech" placeholder="Technologies" value="${escapeAttr(p.tech)}" />
+        </div>
+    `);
+}
+
+function extracurricularRowHtml(x = {}) {
+    return entryRow('extra-entry', `
+        <div class="entry-row-top">
+            <input type="text" class="ex-title" placeholder="Activity (e.g. Taekwondo)" value="${escapeAttr(x.title)}" />
+            <input type="text" class="ex-detail" placeholder="Achievement / detail" value="${escapeAttr(x.detail)}" />
+        </div>
+    `);
 }
 
 document.getElementById('add-experience-btn').addEventListener('click', () => {
@@ -937,6 +1142,14 @@ document.getElementById('add-experience-btn').addEventListener('click', () => {
 
 document.getElementById('add-education-btn').addEventListener('click', () => {
     educationRowsEl.appendChild(educationRowHtml());
+});
+
+document.getElementById('add-college-project-btn').addEventListener('click', () => {
+    collegeProjectRowsEl.appendChild(collegeProjectRowHtml());
+});
+
+document.getElementById('add-extracurricular-btn').addEventListener('click', () => {
+    extracurricularRowsEl.appendChild(extracurricularRowHtml());
 });
 
 async function loadResumeData() {
@@ -954,32 +1167,91 @@ async function loadResumeData() {
     document.getElementById('resume-email').value = data.email || '';
     document.getElementById('resume-summary').value = data.summary || '';
     document.getElementById('resume-skills').value = (data.skills || []).join(', ');
-    document.getElementById('resume-extracurricular').value = data.extracurricular || '';
+    document.getElementById('resume-college-duration').value = data.collegeProjectsDuration || '';
 
-    experienceRowsEl.innerHTML = '';
-    (data.experience || []).forEach((exp) => experienceRowsEl.appendChild(experienceRowHtml(exp)));
-
-    educationRowsEl.innerHTML = '';
-    (data.education || []).forEach((edu) => educationRowsEl.appendChild(educationRowHtml(edu)));
+    const fill = (el, items, makeRow) => {
+        el.innerHTML = '';
+        (items || []).forEach((item) => el.appendChild(makeRow(item)));
+    };
+    fill(experienceRowsEl, data.experience, experienceRowHtml);
+    fill(collegeProjectRowsEl, data.collegeProjects, collegeProjectRowHtml);
+    fill(educationRowsEl, data.education, educationRowHtml);
+    fill(extracurricularRowsEl, data.extracurricular, extracurricularRowHtml);
 }
 
+const valueOf = (root, selector) => root.querySelector(selector).value.trim();
+const rowsOf = (el, cls) => Array.from(el.querySelectorAll(`:scope > .entry-row.${cls}`));
+
 function collectExperience() {
-    return Array.from(experienceRowsEl.querySelectorAll('.entry-row')).map((row) => ({
-        company: row.querySelector('.exp-company').value.trim(),
-        role: row.querySelector('.exp-role').value.trim(),
-        duration: row.querySelector('.exp-duration').value.trim(),
-        description: row.querySelector('.exp-description').value.trim(),
+    return rowsOf(experienceRowsEl, 'experience-entry').map((row) => ({
+        company: valueOf(row, '.exp-company'),
+        role: valueOf(row, '.exp-role'),
+        duration: valueOf(row, '.exp-duration'),
+        description: valueOf(row, '.exp-description'),
+        projects: rowsOf(row.querySelector('.project-rows'), 'project-entry').map((p) => ({
+            name: valueOf(p, '.proj-name'),
+            url: valueOf(p, '.proj-url'),
+            bullets: p.querySelector('.proj-bullets').value.split('\n')
+                .map((b) => b.trim().replace(/^[•\-*]\s*/, '')).filter(Boolean),
+        })).filter((p) => p.name || p.bullets.length),
+        website: valueOf(row, '.exp-website'),
     }));
 }
 
 function collectEducation() {
-    return Array.from(educationRowsEl.querySelectorAll('.entry-row')).map((row) => ({
-        degree: row.querySelector('.edu-degree').value.trim(),
-        institution: row.querySelector('.edu-institution').value.trim(),
-        duration: row.querySelector('.edu-duration').value.trim(),
-        score: row.querySelector('.edu-score').value.trim(),
+    return rowsOf(educationRowsEl, 'education-entry').map((row) => ({
+        degree: valueOf(row, '.edu-degree'),
+        institution: valueOf(row, '.edu-institution'),
+        duration: valueOf(row, '.edu-duration'),
+        score: valueOf(row, '.edu-score'),
     }));
 }
+
+function collectResume() {
+    return {
+        name: document.getElementById('resume-name').value.trim(),
+        title: document.getElementById('resume-title').value.trim(),
+        phone: document.getElementById('resume-phone').value.trim(),
+        email: document.getElementById('resume-email').value.trim(),
+        summary: document.getElementById('resume-summary').value.trim(),
+        skills: document.getElementById('resume-skills').value.split(',').map((s) => s.trim()).filter(Boolean),
+        experience: collectExperience(),
+        collegeProjectsDuration: document.getElementById('resume-college-duration').value.trim(),
+        collegeProjects: rowsOf(collegeProjectRowsEl, 'college-entry')
+            .map((row) => ({ name: valueOf(row, '.cp-name'), tech: valueOf(row, '.cp-tech') }))
+            .filter((p) => p.name || p.tech),
+        education: collectEducation(),
+        extracurricular: rowsOf(extracurricularRowsEl, 'extra-entry')
+            .map((row) => ({ title: valueOf(row, '.ex-title'), detail: valueOf(row, '.ex-detail') }))
+            .filter((x) => x.title || x.detail),
+    };
+}
+
+const resumePreviewBtn = document.getElementById('resume-preview-btn');
+
+resumePreviewBtn.addEventListener('click', async () => {
+    resumeFormError.textContent = '';
+    // Open the tab synchronously so popup blockers allow it, then fill it in.
+    const win = window.open('', '_blank');
+    resumePreviewBtn.disabled = true;
+    try {
+        const res = await fetch('/api/admin/resume-preview', jsonBody('POST', collectResume()));
+        if (res.status === 401) {
+            if (win) win.close();
+            return showLogin('Your session expired - please log in again.');
+        }
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Preview failed');
+        const url = URL.createObjectURL(await res.blob());
+        if (win) win.location.href = url;
+        else window.location.href = url;
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+        if (win) win.close();
+        resumeFormError.textContent = err.message;
+    } finally {
+        resumePreviewBtn.disabled = false;
+    }
+});
 
 resumeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -988,17 +1260,7 @@ resumeForm.addEventListener('submit', async (e) => {
     resumeSaveBtn.disabled = true;
     document.getElementById('resume-linkedin-reminder').style.display = 'none';
 
-    const payload = {
-        name: document.getElementById('resume-name').value.trim(),
-        title: document.getElementById('resume-title').value.trim(),
-        phone: document.getElementById('resume-phone').value.trim(),
-        email: document.getElementById('resume-email').value.trim(),
-        summary: document.getElementById('resume-summary').value.trim(),
-        skills: document.getElementById('resume-skills').value.split(',').map((s) => s.trim()).filter(Boolean),
-        extracurricular: document.getElementById('resume-extracurricular').value.trim(),
-        experience: collectExperience(),
-        education: collectEducation(),
-    };
+    const payload = collectResume();
 
     try {
         if (await fetchJson('/api/admin/resume-data', jsonBody('PUT', payload)) === null) return;

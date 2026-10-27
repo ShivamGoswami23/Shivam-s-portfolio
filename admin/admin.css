@@ -958,6 +958,8 @@ code {
     display: flex;
     gap: 6px;
     flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 /* FORMS */
@@ -1052,8 +1054,52 @@ code {
     gap: 10px;
 }
 
-.entry-row .btn {
+.entry-row > .remove-entry-btn {
     align-self: flex-end;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.sub-section {
+    border-top: 1px dashed var(--border);
+    padding-top: 10px;
+}
+
+.sub-section h4 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+}
+
+.sub-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sub-rows .entry-row {
+    background: #fff;
+    margin-bottom: 0;
+}
+
+.resume-subsection > label {
+    margin-bottom: 10px;
+}
+
+/* Keeps Save / Preview reachable at the bottom of the long resume form. */
+.sticky-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    background: var(--card);
+    padding: 12px 0;
+    margin-top: 0;
+    border-top: 1px solid var(--border);
 }
 
 /* SITE ASSETS (photos) */

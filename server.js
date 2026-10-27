@@ -111,12 +111,19 @@ async function uploadFileToStorage(buffer, storagePath, contentType) {
 // keep serving the old cached image forever after a new upload overwrites
 // it - the version number is appended as a query param specifically to
 // invalidate that cache every time the underlying file actually changes.
-async function serveStorageFile(storagePath, localPath, res, version) {
+//
+// `downloadName` forces a "save file" instead of opening it in the browser
+// (Supabase supports this via its own ?download= parameter).
+async function serveStorageFile(storagePath, localPath, res, version, downloadName) {
     if (supabase) {
         const { data } = supabase.storage.from('images').getPublicUrl(storagePath);
-        const url = version ? `${data.publicUrl}?v=${version}` : data.publicUrl;
-        return res.redirect(url);
+        const params = new URLSearchParams();
+        if (version) params.set('v', version);
+        if (downloadName) params.set('download', downloadName);
+        const query = params.toString();
+        return res.redirect(query ? `${data.publicUrl}?${query}` : data.publicUrl);
     }
+    if (downloadName) return res.download(localPath, downloadName);
     res.sendFile(localPath);
 }
 
@@ -357,65 +364,238 @@ const writeSite = (site) => writeJsonStore('site', SITE_FILE, site);
 const readResumeData = () => readJsonStore('resumeData', RESUME_DATA_FILE);
 const writeResumeData = (data) => writeJsonStore('resumeData', RESUME_DATA_FILE, data);
 
-function generateResumePdf(data) {
+// Older saved resume data (from before projects/college projects/structured
+// extracurriculars existed) is upgraded on the fly so it still renders and
+// still loads into the admin editor.
+function normalizeResumeData(data = {}) {
+    const list = (v) => (Array.isArray(v) ? v : []);
+    const text = (v) => (v == null ? '' : String(v));
+    let extracurricular = data.extracurricular;
+    if (typeof extracurricular === 'string') {
+        extracurricular = extracurricular.trim() ? [{ title: extracurricular.trim(), detail: '' }] : [];
+    }
+    return {
+        name: text(data.name),
+        title: text(data.title),
+        phone: text(data.phone),
+        email: text(data.email),
+        summary: text(data.summary),
+        skills: list(data.skills).map(text).filter(Boolean),
+        experience: list(data.experience).map((exp) => ({
+            company: text(exp.company),
+            role: text(exp.role),
+            duration: text(exp.duration),
+            description: text(exp.description),
+            projects: list(exp.projects).map((p) => ({
+                name: text(p.name),
+                url: text(p.url),
+                bullets: list(p.bullets).map(text).filter(Boolean),
+            })),
+            website: text(exp.website),
+        })),
+        collegeProjectsDuration: text(data.collegeProjectsDuration),
+        collegeProjects: list(data.collegeProjects).map((p) => ({ name: text(p.name), tech: text(p.tech) })),
+        education: list(data.education).map((edu) => ({
+            degree: text(edu.degree),
+            institution: text(edu.institution),
+            duration: text(edu.duration),
+            score: text(edu.score),
+        })),
+        extracurricular: list(extracurricular).map((x) => ({ title: text(x.title), detail: text(x.detail) })),
+    };
+}
+
+// Layout mirrors the original Word resume: big name, contact lines, black
+// rules between sections, underlined letter-spaced headings, company/date on
+// one line, bulleted project details, and Education | Extracurricular side by
+// side with a vertical divider. PT Sans (OFL, bundled in fonts/) stands in
+// for the original Trebuchet MS, which can't be redistributed.
+const RESUME_FONTS = {
+    regular: path.join(__dirname, 'fonts', 'PT_Sans-Web-Regular.ttf'),
+    bold: path.join(__dirname, 'fonts', 'PT_Sans-Web-Bold.ttf'),
+};
+
+function generateResumePdf(rawData) {
+    const data = normalizeResumeData(rawData);
     return new Promise((resolve, reject) => {
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const M = { top: 48, bottom: 48, left: 58, right: 58 };
+        const doc = new PDFDocument({ size: 'A4', margins: M, info: { Title: `${data.name} - Resume`, Author: data.name } });
         const chunks = [];
         doc.on('data', (chunk) => chunks.push(chunk));
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
 
-        const sectionHeading = (text) => {
-            doc.moveDown(0.6);
-            doc.fontSize(13).font('Helvetica-Bold').fillColor('#000').text(text.toUpperCase());
-            doc.moveDown(0.3);
+        doc.registerFont('R', RESUME_FONTS.regular);
+        doc.registerFont('B', RESUME_FONTS.bold);
+
+        const X = M.left;
+        const W = doc.page.width - M.left - M.right;
+        const BODY = 10.5;
+        const pageBottom = () => doc.page.height - M.bottom;
+        const ensureSpace = (h) => { if (doc.y + h > pageBottom()) doc.addPage(); };
+
+        const rule = (gapBefore = 10, gapAfter = 14) => {
+            doc.y += gapBefore;
+            ensureSpace(gapAfter + 30);
+            doc.save().lineWidth(0.8).strokeColor('#000').moveTo(X, doc.y).lineTo(X + W, doc.y).stroke().restore();
+            doc.y += gapAfter;
         };
 
-        doc.fontSize(26).font('Helvetica-Bold').fillColor('#000').text(data.name || '');
-        doc.fontSize(14).font('Helvetica').fillColor('#444').text(data.title || '');
-        doc.moveDown(0.4);
-        doc.fontSize(10).font('Helvetica').fillColor('#666')
-            .text([data.phone, data.email].filter(Boolean).join('    |    '));
-        doc.moveDown(0.5);
-        doc.strokeColor('#cccccc').moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+        const heading = (label, { underline = true, x = X, width = W, right = '' } = {}) => {
+            ensureSpace(40);
+            const y = doc.y;
+            if (right) doc.font('B').fontSize(BODY).fillColor('#000').text(right, x, y + 1, { width, align: 'right' });
+            const text = label.toUpperCase();
+            const spacing = 1.1;
+            doc.font('B').fontSize(12).fillColor('#000').text(text, x, y, { width, characterSpacing: spacing });
+            // PDFKit's own underline also spans the trailing letter-spacing,
+            // overshooting the word - draw it to the exact text width instead.
+            if (underline) {
+                const lineW = Math.min(width, doc.widthOfString(text, { characterSpacing: spacing }) - spacing);
+                const uy = y + doc.currentLineHeight() - 1;
+                doc.save().lineWidth(0.9).strokeColor('#000').moveTo(x, uy).lineTo(x + lineW, uy).stroke().restore();
+            }
+            doc.y += 6;
+        };
 
-        if (data.summary) {
-            doc.moveDown(0.6);
-            doc.fontSize(11).font('Helvetica').fillColor('#000').text(data.summary);
+        const paragraph = (str, { x = X, width = W, font = 'R', size = BODY, gap = 4 } = {}) => {
+            str.split(/\r?\n/).filter((l) => l.trim()).forEach((line) => {
+                ensureSpace(doc.font(font).fontSize(size).heightOfString(line, { width, lineGap: 1.5 }));
+                doc.font(font).fontSize(size).fillColor('#000').text(line, x, doc.y, { width, lineGap: 1.5 });
+                doc.y += gap;
+            });
+        };
+
+        // Header
+        doc.font('B').fontSize(40).fillColor('#000').text(data.name, X, doc.y, { width: W });
+        doc.y += 2;
+        doc.font('R').fontSize(BODY);
+        [data.phone, data.email].filter(Boolean).forEach((line) => doc.text(line, X, doc.y, { width: W }));
+        rule(8, 18);
+
+        // Title + summary
+        if (data.title || data.summary) {
+            if (data.title) heading(data.title, { underline: false });
+            if (data.summary) paragraph(data.summary, { gap: 0 });
+            rule(14, 18);
         }
 
-        if (Array.isArray(data.skills) && data.skills.length) {
-            sectionHeading('Key Skills');
-            doc.fontSize(11).font('Helvetica').fillColor('#000').text(data.skills.join('   •   '));
+        // Key competencies, filled column by column like the original
+        if (data.skills.length) {
+            heading('Key Competencies');
+            const cols = data.skills.length > 8 ? 3 : 2;
+            const perCol = Math.ceil(data.skills.length / cols);
+            const colW = Math.min(170, W / cols);
+            const lineH = doc.font('R').fontSize(BODY).currentLineHeight(true) + 1.5;
+            ensureSpace(perCol * lineH);
+            const top = doc.y;
+            data.skills.forEach((skill, i) => {
+                doc.font('R').fontSize(BODY).fillColor('#000')
+                    .text(skill, X + Math.floor(i / perCol) * colW, top + (i % perCol) * lineH, { width: colW - 10, lineBreak: false });
+            });
+            doc.y = top + perCol * lineH;
+            rule(8, 18);
         }
 
-        if (Array.isArray(data.experience) && data.experience.length) {
-            sectionHeading('Professional Experience');
+        // Professional experience
+        if (data.experience.length) {
+            heading('Professional Experience');
             data.experience.forEach((exp, i) => {
-                doc.fontSize(12).font('Helvetica-Bold').fillColor('#000').text(exp.company || '');
-                doc.fontSize(10).font('Helvetica-Oblique').fillColor('#666')
-                    .text([exp.role, exp.duration].filter(Boolean).join('   •   '));
-                doc.moveDown(0.2);
-                if (exp.description) {
-                    doc.fontSize(10.5).font('Helvetica').fillColor('#000').text(exp.description);
+                if (i > 0) doc.y += 12;
+                ensureSpace(60);
+                const y = doc.y;
+                doc.font('B').fontSize(BODY).fillColor('#000');
+                if (exp.duration) doc.text(exp.duration, X, y, { width: W, align: 'right' });
+                doc.text(exp.company, X, y, { width: W * 0.65 });
+                if (exp.role) doc.text(exp.role, X, doc.y, { width: W });
+                doc.y += 6;
+                if (exp.description) paragraph(exp.description);
+
+                exp.projects.forEach((p) => {
+                    doc.y += 4;
+                    ensureSpace(40);
+                    doc.font('B').fontSize(BODY).fillColor('#000')
+                        .text(`Project: ${p.name}`, X, doc.y, { width: W, continued: Boolean(p.url) });
+                    if (p.url) doc.font('R').text(`  |  ${p.url}`);
+                    doc.y += 5;
+                    p.bullets.forEach((b) => {
+                        const tx = X + 22;
+                        const tw = W - 22;
+                        ensureSpace(doc.font('R').fontSize(BODY).heightOfString(b, { width: tw, lineGap: 1.5 }));
+                        const by = doc.y;
+                        doc.font('R').fontSize(BODY).text('•', X + 8, by, { lineBreak: false });
+                        doc.text(b, tx, by, { width: tw, lineGap: 1.5 });
+                        doc.y += 3.5;
+                    });
+                });
+
+                if (exp.website) {
+                    doc.y += 4;
+                    paragraph(`Website: ${exp.website}`, { gap: 0 });
                 }
-                if (i < data.experience.length - 1) doc.moveDown(0.5);
             });
         }
 
-        if (Array.isArray(data.education) && data.education.length) {
-            sectionHeading('Education');
-            data.education.forEach((edu, i) => {
-                doc.fontSize(12).font('Helvetica-Bold').fillColor('#000').text(edu.degree || '');
-                doc.fontSize(10).font('Helvetica-Oblique').fillColor('#666')
-                    .text([edu.institution, edu.duration, edu.score].filter(Boolean).join('   •   '));
-                if (i < data.education.length - 1) doc.moveDown(0.4);
+        // Other college projects
+        if (data.collegeProjects.length) {
+            rule(16, 18);
+            heading('Other College Projects', { right: data.collegeProjectsDuration });
+            data.collegeProjects.forEach((p) => {
+                ensureSpace(30);
+                doc.font('B').fontSize(9.5).fillColor('#000').text(p.name, X, doc.y, { width: W });
+                if (p.tech) doc.font('R').fontSize(BODY).text(p.tech, X, doc.y, { width: W / 2 });
+                doc.y += 8;
             });
         }
 
-        if (data.extracurricular) {
-            sectionHeading('Extracurricular Activities');
-            doc.fontSize(11).font('Helvetica').fillColor('#000').text(data.extracurricular);
+        // Education | Extracurricular, side by side
+        if (data.education.length || data.extracurricular.length) {
+            rule(data.collegeProjects.length ? 4 : 16, 18);
+            const leftW = W * 0.47;
+            const rightX = X + W * 0.53;
+            const rightW = W - W * 0.53;
+            const lh = (str, font, size, width) => doc.font(font).fontSize(size).heightOfString(str || ' ', { width, lineGap: 1.5 });
+            const eduLines = (edu) => {
+                const lines = edu.institution.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+                if (edu.duration) {
+                    if (lines.length) lines[lines.length - 1] += `, ${edu.duration}`;
+                    else lines.push(edu.duration);
+                }
+                if (edu.score) lines.push(edu.score);
+                return lines;
+            };
+            const leftH = 26 + data.education.reduce((h, edu) => h + 12 + lh(edu.degree, 'B', BODY, leftW)
+                + eduLines(edu).reduce((s, l) => s + lh(l, 'R', BODY, leftW), 0), 0);
+            const rightH = 26 + data.extracurricular.reduce((h, x) => h + 10 + lh(x.title, 'B', BODY, rightW) + lh(x.detail, 'R', 9.5, rightW), 0);
+            ensureSpace(Math.max(leftH, rightH));
+
+            const top = doc.y;
+            if (data.education.length) {
+                heading('Education & Certifications', { x: X, width: leftW });
+                data.education.forEach((edu, i) => {
+                    if (i > 0) doc.y += 12;
+                    doc.font('B').fontSize(BODY).fillColor('#000').text(edu.degree, X, doc.y, { width: leftW, lineGap: 1.5 });
+                    eduLines(edu).forEach((l) => doc.font('R').fontSize(BODY).text(l, X, doc.y, { width: leftW, lineGap: 1.5 }));
+                });
+            }
+            const leftBottom = doc.y;
+
+            doc.y = top;
+            if (data.extracurricular.length) {
+                heading('Extracurricular Activities', { x: rightX, width: rightW });
+                data.extracurricular.forEach((x, i) => {
+                    if (i > 0) doc.y += 10;
+                    doc.font('B').fontSize(BODY).fillColor('#000').text(x.title, rightX, doc.y, { width: rightW, lineGap: 1.5 });
+                    if (x.detail) doc.font('R').fontSize(9.5).text(x.detail, rightX, doc.y, { width: rightW, lineGap: 1.5 });
+                });
+            }
+            const bottom = Math.max(leftBottom, doc.y);
+
+            if (data.education.length && data.extracurricular.length) {
+                const divX = X + W * 0.5;
+                doc.save().lineWidth(0.8).strokeColor('#000').moveTo(divX, top - 4).lineTo(divX, bottom).stroke().restore();
+            }
+            doc.y = bottom;
         }
 
         doc.end();
@@ -554,6 +734,56 @@ app.delete('/api/admin/projects/:id', requireAuth, async (req, res) => {
     const [removed] = projects.splice(idx, 1);
     await writeProjects(projects);
     res.json(removed);
+});
+
+// Admin: turn a live website into a project thumbnail. The browser takes the
+// screenshot itself (via thum.io / mShots / Microlink, which can take ~10s -
+// longer than a Vercel Hobby function is allowed to run) and hands us the
+// resulting image URL; this endpoint only downloads, resizes and stores it.
+// There's intentionally no og:image fallback - for these sites it's a logo.
+const PROJECT_THUMB_WIDTH = 1600;
+const PROJECT_THUMB_HEIGHT = 1000;
+const MAX_REMOTE_IMAGE_BYTES = 15 * 1024 * 1024;
+
+function parseHttpUrl(value) {
+    try {
+        const url = new URL(String(value || ''));
+        return /^https?:$/.test(url.protocol) ? url : null;
+    } catch {
+        return null;
+    }
+}
+
+async function fetchWithTimeout(url, ms) {
+    return fetch(url, {
+        signal: AbortSignal.timeout(ms),
+        redirect: 'follow',
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PortfolioThumbnailBot/1.0)' },
+    });
+}
+
+app.post('/api/admin/projects/import-image', requireAuth, async (req, res) => {
+    const source = parseHttpUrl(req.body?.imageUrl);
+    if (!source) return res.status(400).json({ error: 'A valid screenshot image URL is required' });
+    try {
+        const imgRes = await fetchWithTimeout(source.href, 8000);
+        if (!imgRes.ok) throw new Error(`Image download failed (${imgRes.status})`);
+        if (!/^image\//.test(imgRes.headers.get('content-type') || '')) throw new Error('That URL is not an image');
+        const raw = Buffer.from(await imgRes.arrayBuffer());
+        if (raw.length > MAX_REMOTE_IMAGE_BYTES) throw new Error('Image is too large');
+
+        // Same 16:10 frame as the other project thumbnails; screenshots are
+        // anchored to the top so the site's header/hero is what's kept.
+        const thumb = await sharp(raw)
+            .resize(PROJECT_THUMB_WIDTH, PROJECT_THUMB_HEIGHT, { fit: 'cover', position: 'top' })
+            .jpeg({ quality: 85, mozjpeg: true })
+            .toBuffer();
+        const imagePath = await uploadFileToStorage(thumb, crypto.randomBytes(8).toString('hex') + '.jpg', 'image/jpeg');
+        res.json({ path: imagePath });
+    } catch (err) {
+        const message = err.name === 'TimeoutError' ? 'The site took too long to respond' : err.message;
+        res.status(400).json({ error: message });
+    }
 });
 
 // Admin certificate CRUD
@@ -763,11 +993,25 @@ app.delete('/api/admin/upload-photo/:slot', requireAuth, async (req, res) => {
 
 // Admin: structured resume content editor (auto-generates the PDF on save)
 app.get('/api/admin/resume-data', requireAuth, async (req, res) => {
-    res.json(await readResumeData());
+    res.json(normalizeResumeData(await readResumeData()));
+});
+
+// Renders the PDF from the editor's current (unsaved) contents so the admin
+// can check the layout before publishing it.
+app.post('/api/admin/resume-preview', requireAuth, async (req, res) => {
+    try {
+        const pdfBuffer = await generateResumePdf(req.body || {});
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="resume-preview.pdf"');
+        res.send(pdfBuffer);
+    } catch (err) {
+        console.error('Failed to generate resume preview:', err.message);
+        res.status(500).json({ error: 'Failed to generate preview' });
+    }
 });
 
 app.put('/api/admin/resume-data', requireAuth, async (req, res) => {
-    const data = req.body || {};
+    const data = normalizeResumeData(req.body);
     if (!data.name) return res.status(400).json({ error: 'Name is required' });
 
     try {
@@ -825,7 +1069,8 @@ app.get('/images/:filename', async (req, res, next) => {
 });
 app.get('/Shivam-Goswami-Resume.pdf', async (req, res) => {
     const site = await readSite();
-    await serveStorageFile('resume.pdf', RESUME_PATH, res, site.resumeVersion);
+    const downloadName = req.query.download ? 'Shivam-Goswami-Resume.pdf' : undefined;
+    await serveStorageFile('resume.pdf', RESUME_PATH, res, site.resumeVersion, downloadName);
 });
 app.use('/images', express.static(IMAGES_DIR));
 app.use(express.static(__dirname));

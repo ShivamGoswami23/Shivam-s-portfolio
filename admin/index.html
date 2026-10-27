@@ -220,14 +220,18 @@
                     <section class="panel">
                         <div class="panel-header">
                             <h2>Resume Editor</h2>
-                            <a id="current-resume" href="#" target="_blank" class="btn btn-ghost btn-sm"><i class="ri-file-pdf-2-line"></i> View current PDF</a>
+                            <div class="header-actions">
+                                <a id="current-resume" href="#" target="_blank" class="btn btn-ghost btn-sm"><i class="ri-file-pdf-2-line"></i> View current</a>
+                                <a id="download-resume" href="#" download="Shivam-Goswami-Resume.pdf" class="btn btn-ghost btn-sm"><i class="ri-download-2-line"></i> Download PDF</a>
+                            </div>
                         </div>
+                        <p class="panel-hint">Edit anything below, check it with <strong>Preview PDF</strong>, then <strong>Save &amp; Publish</strong> to update the resume everywhere on the site. The layout always stays the same.</p>
 
                         <form id="resume-form" class="form">
                             <label>Full Name
                                 <input type="text" id="resume-name" required />
                             </label>
-                            <label>Title
+                            <label>Title (shown as the heading above your summary)
                                 <input type="text" id="resume-title" placeholder="e.g. .NET Developer" />
                             </label>
                             <div class="two-col">
@@ -255,18 +259,34 @@
 
                             <div class="resume-subsection">
                                 <div class="resume-subsection-header">
+                                    <h3>Other College Projects</h3>
+                                    <button type="button" id="add-college-project-btn" class="btn btn-secondary btn-sm"><i class="ri-add-line"></i> Add Project</button>
+                                </div>
+                                <label>Period (shown on the right of the heading)
+                                    <input type="text" id="resume-college-duration" placeholder="e.g. July 2020 - Jan 2022" />
+                                </label>
+                                <div id="college-project-rows" class="sub-rows"></div>
+                            </div>
+
+                            <div class="resume-subsection">
+                                <div class="resume-subsection-header">
                                     <h3>Education</h3>
                                     <button type="button" id="add-education-btn" class="btn btn-secondary btn-sm"><i class="ri-add-line"></i> Add Education</button>
                                 </div>
                                 <div id="education-rows"></div>
                             </div>
 
-                            <label>Extracurricular Activities
-                                <input type="text" id="resume-extracurricular" />
-                            </label>
+                            <div class="resume-subsection">
+                                <div class="resume-subsection-header">
+                                    <h3>Extracurricular Activities</h3>
+                                    <button type="button" id="add-extracurricular-btn" class="btn btn-secondary btn-sm"><i class="ri-add-line"></i> Add Activity</button>
+                                </div>
+                                <div id="extracurricular-rows"></div>
+                            </div>
 
-                            <div class="form-actions">
-                                <button type="submit" id="resume-save-btn" class="btn btn-primary">Save &amp; Generate PDF</button>
+                            <div class="form-actions sticky-actions">
+                                <button type="submit" id="resume-save-btn" class="btn btn-primary"><i class="ri-save-3-line"></i> Save &amp; Publish</button>
+                                <button type="button" id="resume-preview-btn" class="btn btn-secondary"><i class="ri-eye-line"></i> Preview PDF</button>
                                 <span id="resume-status" class="upload-status"></span>
                             </div>
                             <p id="resume-form-error" class="error"></p>
@@ -308,12 +328,14 @@
                                 <div class="image-field">
                                     <img id="image-preview" class="image-preview" style="display:none;" alt="">
                                     <input type="text" id="project-image" placeholder="images/example.png" required />
+                                    <button type="button" id="project-fetch-image" class="btn btn-secondary"><i class="ri-camera-lens-line"></i> Fetch from site</button>
                                     <label class="btn btn-secondary">
                                         <i class="ri-upload-2-line"></i> Upload
                                         <input type="file" id="project-image-file" accept="image/*" hidden />
                                     </label>
                                 </div>
                                 <span id="upload-status" class="upload-status"></span>
+                                <span class="panel-hint">Changing the Live URL automatically takes a fresh screenshot of the site. You can still upload your own image instead.</span>
                             </label>
                             <div class="form-actions">
                                 <button type="submit" id="save-btn" class="btn btn-primary">Add Project</button>
